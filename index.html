@@ -738,6 +738,7 @@ const state = {
 };
 
 const PT_PER_MM = 72 / 25.4;
+const copyBytes = bytes => new Uint8Array(bytes);
 
 // ─── DOM refs ────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -902,7 +903,7 @@ async function renderPageToCanvas() {
     if (!w || w < 50) { await new Promise(r => setTimeout(r, 150)); w = canvasWrapper.clientWidth; }
     if (!w || w < 50) { toast('No se pudo determinar el ancho del visor', 'error'); return; }
 
-    const pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes }).promise;
+    const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(state.pdfBytes) }).promise;
     const page = await pdfDoc.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
     const scale = Math.min(w, 900) / viewport.width;
@@ -1003,7 +1004,7 @@ async function loadPdf(file) {
   try {
     const arrayBuffer = await file.arrayBuffer();
     state.pdfBytes = new Uint8Array(arrayBuffer);
-    state.pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+    state.pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
     const pages = state.pdfDoc.getPages();
     state.pageCount = pages.length;
 
@@ -1029,10 +1030,13 @@ async function loadPdf(file) {
 
     updateApplyButton();
     btnPreview.disabled = false;
-    state.modifiedPdfBytes = state.pdfBytes;
+    state.modifiedPdfBytes = copyBytes(state.pdfBytes);
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' páginas');
     toast('PDF cargado correctamente', 'success');
+    if (!state.selectedStampId) {
+      toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
+    }
     saveSettings();
   } catch (err) {
     console.error(err);
@@ -1044,7 +1048,7 @@ async function loadPdf(file) {
 }
 
 function previewPdfOriginal() {
-  const blob = new Blob([state.pdfBytes], { type: 'application/pdf' });
+  const blob = new Blob([copyBytes(state.pdfBytes)], { type: 'application/pdf' });
   previewFrame.src = URL.createObjectURL(blob);
   previewContainer.style.display = 'flex';
 }
@@ -1063,7 +1067,7 @@ async function applyStamps() {
   btnApply.textContent = '⏳ Procesando...';
 
   try {
-    const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+    const pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
     const pages = pdfDoc.getPages();
     const stampBytes = base64ToBytes(stamp.dataUrl.split(',')[1]);
     const stampImage = stamp.dataUrl.startsWith('data:image/png')
