@@ -392,15 +392,9 @@ body::before {
 
 /* Position Editor */
 .editor-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-}
-
-@media (max-width: 860px) {
-  .app-layout { grid-template-columns: 1fr; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
-  .editor-section { grid-template-columns: 1fr; }
 }
 
 .editor-card {
@@ -408,93 +402,104 @@ body::before {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
-}
-
-.editor-card h3 {
-  font-size: 0.76rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text3);
-  margin-bottom: 14px;
-}
-
-.position-picker {
-  position: relative;
-  width: 100%;
-  aspect-ratio: var(--page-ratio, 0.7727);
-  background: #fff;
-  border-radius: 6px;
-  border: 1px solid var(--border-light);
-  cursor: crosshair;
-  overflow: hidden;
-  max-width: 360px;
-  margin: 0 auto;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-}
-
-/* grid lines to simulate a form */
-.position-picker::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-  background-size: 8.333% 8.333%;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.position-marker {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
-  transition: none;
-}
-
-.marker-stamp {
-  width: var(--stamp-w, 48px);
-  height: var(--stamp-h, 48px);
-  border: 2px solid var(--red);
-  border-radius: 4px;
-  background: rgba(232,17,27,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
-  color: var(--red);
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.marker-time {
-  width: var(--time-w, 56px);
-  height: 16px;
-  border: 2px solid #3b82f6;
-  border-radius: 3px;
-  background: rgba(59,130,246,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.55rem;
-  color: #3b82f6;
-  font-family: 'DM Mono', monospace;
-  font-weight: 500;
-}
-
-.position-picker:hover .marker-stamp,
-.position-picker:hover .marker-time {
-  opacity: 0.6;
-}
-
-.position-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 16px;
 }
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.editor-header h3 {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.mode-btn {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text3);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.mode-btn:hover { color: var(--text2); }
+
+.mode-btn.active {
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 1px 4px var(--red-glow);
+}
+
+.canvas-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  background: #fff;
+  cursor: crosshair;
+  box-shadow: 0 2px 24px rgba(0,0,0,0.4);
+  user-select: none;
+}
+
+.canvas-wrapper canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.controls-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.control-group {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+
+.control-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+
+.control-group-label .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.dot-stamp { background: var(--red); }
+.dot-time { background: #3b82f6; }
 
 .coord-row {
   display: flex;
@@ -851,6 +856,12 @@ body::before {
 }
 
 /* Responsive */
+@media (max-width: 860px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
+  .controls-row { grid-template-columns: 1fr; }
+  .editor-header { flex-direction: column; align-items: flex-start; }
+}
 @media (max-width: 640px) {
   .header { padding: 0 16px; }
   .main-content { padding: 16px; }
@@ -912,40 +923,41 @@ body::before {
       </div>
 
       <div class="editor-section">
-        <!-- Stamp Position Editor -->
         <div class="editor-card">
-          <h3>📌 Posición del Timbre</h3>
-          <div class="position-picker" id="stampPicker">
-            <div class="position-marker marker-stamp" id="stampMarker">TIMBRE</div>
-          </div>
-          <div class="position-controls">
-            <div class="coord-row">
-              <div class="coord-field"><label>X (mm)</label><input type="number" id="stampX" value="20" step="0.5" min="0"></div>
-              <div class="coord-field"><label>Y (mm)</label><input type="number" id="stampY" value="20" step="0.5" min="0"></div>
-              <div class="coord-field size-field"><label>Ancho (mm)</label><input type="number" id="stampW" value="25" step="0.5" min="5"></div>
+          <div class="editor-header">
+            <h3>Haz clic sobre la guía para posicionar cada elemento</h3>
+            <div class="mode-toggle" id="modeToggle">
+              <button class="mode-btn active" data-mode="stamp">📌 Posicionar Timbre</button>
+              <button class="mode-btn" data-mode="time">🕐 Posicionar Hora</button>
             </div>
           </div>
-        </div>
-
-        <!-- Timestamp Position Editor -->
-        <div class="editor-card">
-          <h3>🕐 Posición de la Hora</h3>
-          <div class="position-picker" id="timePicker">
-            <div class="position-marker marker-time" id="timeMarker">HH:MM</div>
+          <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="pageCanvas"></canvas>
           </div>
-          <div class="position-controls">
-            <div class="coord-row">
-              <div class="coord-field"><label>X (mm)</label><input type="number" id="timeX" value="48" step="0.5" min="0"></div>
-              <div class="coord-field"><label>Y (mm)</label><input type="number" id="timeY" value="20" step="0.5" min="0"></div>
+          <div class="controls-row">
+            <div class="control-group">
+              <div class="control-group-label"><span class="dot dot-stamp"></span> Timbre</div>
+              <div class="coord-row">
+                <div class="coord-field"><label>X mm</label><input type="number" id="stampX" value="20" step="0.5" min="0"></div>
+                <div class="coord-field"><label>Y mm</label><input type="number" id="stampY" value="20" step="0.5" min="0"></div>
+                <div class="coord-field size-field"><label>Ancho mm</label><input type="number" id="stampW" value="25" step="0.5" min="5"></div>
+              </div>
             </div>
-            <div class="settings-row" style="margin-top:4px;">
-              <label>Formato:</label>
-              <select id="timeFormat">
-                <option value="HH:mm">HH:mm (14:30)</option>
-                <option value="HH:mm:ss">HH:mm:ss (14:30:25)</option>
-                <option value="dd/MM/yyyy HH:mm">dd/MM/yyyy HH:mm</option>
-                <option value="dd/MM/yyyy HH:mm:ss">dd/MM/yyyy HH:mm:ss</option>
-              </select>
+            <div class="control-group">
+              <div class="control-group-label"><span class="dot dot-time"></span> Hora</div>
+              <div class="coord-row">
+                <div class="coord-field"><label>X mm</label><input type="number" id="timeX" value="48" step="0.5" min="0"></div>
+                <div class="coord-field"><label>Y mm</label><input type="number" id="timeY" value="20" step="0.5" min="0"></div>
+              </div>
+              <div class="settings-row" style="margin-top:8px;">
+                <label>Formato:</label>
+                <select id="timeFormat">
+                  <option value="HH:mm">HH:mm (14:30)</option>
+                  <option value="HH:mm:ss">HH:mm:ss (14:30:25)</option>
+                  <option value="dd/MM/yyyy HH:mm">dd/MM/yyyy HH:mm</option>
+                  <option value="dd/MM/yyyy HH:mm:ss">dd/MM/yyyy HH:mm:ss</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -1000,6 +1012,7 @@ body::before {
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
 // ─── State ────────────────────────────────────────────────
@@ -1052,17 +1065,255 @@ uploadZone.addEventListener('drop', e => {
   else toast('Solo se aceptan archivos PDF', 'error');
 });
 
-// Position pickers
-setupPositionPicker('stampPicker', 'stampMarker', 'stampX', 'stampY', 'stampPosition', false);
-setupPositionPicker('timePicker', 'timeMarker', 'timeX', 'timeY', 'timePosition', true);
-bindCoordInputs();
-$('timeFormat').addEventListener('change', e => { state.timeFormat = e.target.value; });
+// ─── Canvas-based Position Editor ─────────────────────────
+let pdfPageImage = null;   // rendered page bitmap
+let canvasScale = 1;
+let activeMode = 'stamp';  // 'stamp' | 'time'
+let draggingMarker = null; // 'stamp' | 'time' | null
+const pageCanvas = $('pageCanvas');
+const canvasWrapper = $('canvasWrapper');
+const ctx = pageCanvas.getContext('2d');
+
+// Mode toggle buttons
+$('modeToggle').addEventListener('click', e => {
+  const btn = e.target.closest('.mode-btn');
+  if (!btn) return;
+  activeMode = btn.dataset.mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  pageCanvas.style.cursor = activeMode === 'stamp' ? 'crosshair' : 'crosshair';
+  drawCanvas();
+});
+
+// Canvas interaction
+pageCanvas.addEventListener('mousedown', e => {
+  if (!pdfPageImage) return;
+  const rect = pageCanvas.getBoundingClientRect();
+  const sx = (e.clientX - rect.left) / rect.width * pageCanvas.width;
+  const sy = (e.clientY - rect.top) / rect.height * pageCanvas.height;
+
+  // Check if clicking near stamp marker (within 20px expanded hit area)
+  const smmX = state.stampPosition.x;
+  const smmY = state.stampPosition.y;
+  const scx = smmX / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
+  const scy = smmY / (state.pageHeight / PT_PER_MM) * pageCanvas.height;
+  const sw = state.stampSize.w / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
+  const sh = state.stampSize.h / (state.pageHeight / PT_PER_MM) * pageCanvas.height;
+  const hitPad = 12;
+  if (sx > scx - sw/2 - hitPad && sx < scx + sw/2 + hitPad && sy > scy - sh/2 - hitPad && sy < scy + sh/2 + hitPad) {
+    draggingMarker = 'stamp';
+    pageCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+    return;
+  }
+
+  // Check if clicking near time marker
+  const tmmX = state.timePosition.x;
+  const tmmY = state.timePosition.y;
+  const tcx = tmmX / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
+  const tcy = tmmY / (state.pageHeight / PT_PER_MM) * pageCanvas.height;
+  const tw = 32; // approximate time text width in canvas pixels
+  const th = 12;
+  if (sx > tcx - tw/2 - hitPad && sx < tcx + tw/2 + hitPad && sy > tcy - th/2 - hitPad && sy < tcy + th/2 + hitPad) {
+    draggingMarker = 'time';
+    pageCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+    return;
+  }
+
+  // Click on empty area → place active marker
+  setMarkerFromCanvas(sx, sy, activeMode);
+});
+
+document.addEventListener('mousemove', e => {
+  if (!draggingMarker || !pdfPageImage) return;
+  const rect = pageCanvas.getBoundingClientRect();
+  const sx = Math.max(0, Math.min(pageCanvas.width, (e.clientX - rect.left) / rect.width * pageCanvas.width));
+  const sy = Math.max(0, Math.min(pageCanvas.height, (e.clientY - rect.top) / rect.height * pageCanvas.height));
+  setMarkerFromCanvas(sx, sy, draggingMarker);
+});
+
+document.addEventListener('mouseup', () => {
+  if (draggingMarker) {
+    draggingMarker = null;
+    pageCanvas.style.cursor = 'crosshair';
+  }
+});
+
+// Touch support
+pageCanvas.addEventListener('touchstart', e => {
+  if (!pdfPageImage || !e.touches[0]) return;
+  const rect = pageCanvas.getBoundingClientRect();
+  const sx = (e.touches[0].clientX - rect.left) / rect.width * pageCanvas.width;
+  const sy = (e.touches[0].clientY - rect.top) / rect.height * pageCanvas.height;
+  setMarkerFromCanvas(sx, sy, activeMode);
+  e.preventDefault();
+}, { passive: false });
+
+function setMarkerFromCanvas(cx, cy, which) {
+  const mmX = cx / pageCanvas.width * (state.pageWidth / PT_PER_MM);
+  const mmY = cy / pageCanvas.height * (state.pageHeight / PT_PER_MM);
+  const clampedX = Math.max(0, Math.round(mmX * 2) / 2);
+  const clampedY = Math.max(0, Math.round(mmY * 2) / 2);
+
+  if (which === 'stamp') {
+    state.stampPosition = { x: clampedX, y: clampedY };
+    $('stampX').value = clampedX;
+    $('stampY').value = clampedY;
+  } else {
+    state.timePosition = { x: clampedX, y: clampedY };
+    $('timeX').value = clampedX;
+    $('timeY').value = clampedY;
+  }
+  drawCanvas();
+}
+
+// ─── Coordinate input bindings ─────────────────────────────
+['stampX','stampY','stampW','timeX','timeY'].forEach(id => {
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    if (id === 'stampX') state.stampPosition.x = parseFloat(el.value) || 0;
+    if (id === 'stampY') state.stampPosition.y = parseFloat(el.value) || 0;
+    if (id === 'stampW') {
+      state.stampSize.w = parseFloat(el.value) || 25;
+      const stamp = state.stampLibrary.find(s => s.id === state.selectedStampId);
+      const ratio = stamp ? stamp.natH / stamp.natW : 1;
+      state.stampSize.h = state.stampSize.w * ratio;
+    }
+    if (id === 'timeX') state.timePosition.x = parseFloat(el.value) || 0;
+    if (id === 'timeY') state.timePosition.y = parseFloat(el.value) || 0;
+    drawCanvas();
+  });
+});
+
+$('timeFormat').addEventListener('change', e => { state.timeFormat = e.target.value; drawCanvas(); });
+
+// ─── Canvas rendering ──────────────────────────────────────
+async function renderPageToCanvas() {
+  if (!state.pdfBytes || !state.pageWidth) return;
+
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes }).promise;
+    const page = await pdfDoc.getPage(1);
+    const viewport = page.getViewport({ scale: 1 });
+
+    // Scale to fit wrapper width (max 900px logical)
+    const maxWidth = Math.min(canvasWrapper.clientWidth, 900);
+    canvasScale = maxWidth / viewport.width;
+    const scaledViewport = page.getViewport({ scale: canvasScale });
+
+    pageCanvas.width = scaledViewport.width;
+    pageCanvas.height = scaledViewport.height;
+
+    const renderCtx = pageCanvas.getContext('2d');
+    await page.render({ canvasContext: renderCtx, viewport: scaledViewport }).promise;
+
+    // Create an ImageBitmap for fast redraws
+    pdfPageImage = await createImageBitmap(pageCanvas);
+
+    drawCanvas();
+  } catch (err) {
+    console.error('Error rendering page:', err);
+  }
+}
+
+function drawCanvas() {
+  if (!pdfPageImage || !pageCanvas.width) return;
+
+  ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+  ctx.drawImage(pdfPageImage, 0, 0);
+
+  const pageWmm = state.pageWidth / PT_PER_MM;
+  const pageHmm = state.pageHeight / PT_PER_MM;
+
+  // Draw stamp marker
+  const scx = state.stampPosition.x / pageWmm * pageCanvas.width;
+  const scy = state.stampPosition.y / pageHmm * pageCanvas.height;
+  const sw = state.stampSize.w / pageWmm * pageCanvas.width;
+  const sh = state.stampSize.h / pageHmm * pageCanvas.height;
+
+  ctx.save();
+  ctx.strokeStyle = '#e8111b';
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([6, 3]);
+  ctx.strokeRect(scx - sw/2, scy - sh/2, sw, sh);
+  ctx.setLineDash([]);
+
+  // Fill with semi-transparent red
+  ctx.fillStyle = 'rgba(232,17,27,0.13)';
+  ctx.fillRect(scx - sw/2, scy - sh/2, sw, sh);
+
+  // Label
+  ctx.fillStyle = '#e8111b';
+  ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('TIMBRE', scx, scy - sh/2 - 7);
+  ctx.restore();
+
+  // Draw time marker
+  const tcx = state.timePosition.x / pageWmm * pageCanvas.width;
+  const tcy = state.timePosition.y / pageHmm * pageCanvas.height;
+  const timeLabel = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+
+  ctx.save();
+  ctx.font = 'bold 12px "DM Mono", monospace';
+  ctx.textAlign = 'left';
+  const tm = ctx.measureText(timeLabel);
+
+  const tpad = 8;
+  const tw = tm.width + tpad * 2;
+  const th = 18;
+
+  ctx.fillStyle = 'rgba(59,130,246,0.12)';
+  ctx.fillRect(tcx - tw/2, tcy - th/2, tw, th);
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 2]);
+  ctx.strokeRect(tcx - tw/2, tcy - th/2, tw, th);
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = '#1e40af';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(timeLabel, tcx, tcy);
+  ctx.restore();
+
+  // Crosshair at each marker center
+  drawCrosshair(scx, scy, '#e8111b');
+  drawCrosshair(tcx, tcy, '#3b82f6');
+}
+
+function drawCrosshair(cx, cy, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy);
+  ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Handle window resize
+let resizeDebounce;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeDebounce);
+  resizeDebounce = setTimeout(async () => {
+    if (state.pdfBytes && state.pageWidth) {
+      pdfPageImage = null;
+      await renderPageToCanvas();
+    }
+  }, 250);
+});
 
 // ─── Clock ────────────────────────────────────────────────
 function updateClock() {
   const now = new Date();
   timeDisplay.textContent = formatTime(now, state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
-  if ($('timeMarker')) $('timeMarker').textContent = formatTime(now, 'HH:mm');
+  if (pdfPageImage) drawCanvas();
 }
 
 function formatTime(date, fmt) {
@@ -1075,90 +1326,6 @@ function formatTime(date, fmt) {
   return fmt
     .replace('HH', h).replace('mm', m).replace('ss', s)
     .replace('dd', d).replace('MM', mo).replace('yyyy', y);
-}
-
-// ─── Position Picker ──────────────────────────────────────
-function setupPositionPicker(pickerId, markerId, inputX, inputY, posRef, isTime) {
-  const picker = $(pickerId);
-  const marker = $(markerId);
-  if (!picker || !marker) return;
-
-  picker.addEventListener('click', e => {
-    const rect = picker.getBoundingClientRect();
-    const pctX = (e.clientX - rect.left) / rect.width;
-    const pctY = (e.clientY - rect.top) / rect.height;
-    const mmX = pctX * (state.pageWidth / PT_PER_MM) || pctX * 210; // fallback A4 width
-    const mmY = pctY * (state.pageHeight / PT_PER_MM) || pctY * 297;
-    state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'] = { x: Math.round(mmX * 2) / 2, y: Math.round(mmY * 2) / 2 };
-    $(inputX).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].x;
-    $(inputY).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].y;
-    updateMarkerPosition(picker, marker, isTime);
-  });
-
-  // Drag support
-  let dragging = false;
-  marker.style.pointerEvents = 'auto';
-  marker.style.cursor = 'grab';
-  marker.addEventListener('mousedown', e => {
-    e.stopPropagation();
-    dragging = true;
-    marker.style.cursor = 'grabbing';
-  });
-  document.addEventListener('mousemove', e => {
-    if (!dragging) return;
-    const rect = picker.getBoundingClientRect();
-    const pctX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const pctY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-    const mmX = pctX * (state.pageWidth / PT_PER_MM) || pctX * 210;
-    const mmY = pctY * (state.pageHeight / PT_PER_MM) || pctY * 297;
-    state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'] = { x: Math.round(mmX * 2) / 2, y: Math.round(mmY * 2) / 2 };
-    $(inputX).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].x;
-    $(inputY).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].y;
-    updateMarkerPosition(picker, marker, isTime);
-  });
-  document.addEventListener('mouseup', () => {
-    dragging = false;
-    if (marker) marker.style.cursor = 'grab';
-  });
-}
-
-function updateMarkerPosition(picker, marker, isTime) {
-  const pos = isTime ? state.timePosition : state.stampPosition;
-  const pageWmm = state.pageWidth / PT_PER_MM || 210;
-  const pageHmm = state.pageHeight / PT_PER_MM || 297;
-  marker.style.left = (pos.x / pageWmm * 100) + '%';
-  marker.style.top = (pos.y / pageHmm * 100) + '%';
-  if (isTime) {
-    $('timeMarker').textContent = formatTime(new Date(), 'HH:MM');
-  }
-}
-
-function bindCoordInputs() {
-  ['stampX','stampY','stampW','timeX','timeY'].forEach(id => {
-    const el = $(id);
-    if (!el) return;
-    el.addEventListener('input', () => {
-      if (id.startsWith('stamp')) {
-        if (id === 'stampX') state.stampPosition.x = parseFloat(el.value) || 0;
-        if (id === 'stampY') state.stampPosition.y = parseFloat(el.value) || 0;
-        if (id === 'stampW') {
-          state.stampSize.w = parseFloat(el.value) || 25;
-          const stamp = state.stampLibrary.find(s => s.id === state.selectedStampId);
-          const ratio = stamp ? stamp.natH / stamp.natW : 1;
-          state.stampSize.h = state.stampSize.w * ratio;
-          const pw = state.pageWidth / PT_PER_MM || 210;
-          const ph = state.pageHeight / PT_PER_MM || 297;
-          $('stampPicker').style.setProperty('--stamp-h', (state.stampSize.h / ph * 100) + '%');
-        }
-        updateMarkerPosition($('stampPicker'), $('stampMarker'), false);
-        $('stampPicker').style.setProperty('--stamp-w', (state.stampSize.w / (state.pageWidth / PT_PER_MM || 210) * 100) + '%');
-      } else {
-        if (id === 'timeX') state.timePosition.x = parseFloat(el.value) || 0;
-        if (id === 'timeY') state.timePosition.y = parseFloat(el.value) || 0;
-        updateMarkerPosition($('timePicker'), $('timeMarker'), true);
-      }
-    });
-  });
 }
 
 // ─── PDF Handling ─────────────────────────────────────────
@@ -1185,14 +1352,8 @@ async function loadPdf(file) {
       const size = pages[0].getSize();
       state.pageWidth = size.width;
       state.pageHeight = size.height;
-
-      // Update picker aspect ratio
-      const ratio = size.width / size.height;
-      $('stampPicker').style.setProperty('--page-ratio', ratio);
-      $('timePicker').style.setProperty('--page-ratio', ratio);
-
-      // Reset marker positions
-      updateAllMarkers();
+      pdfPageImage = null;
+      await renderPageToCanvas();
     }
 
     // Update UI
@@ -1230,13 +1391,6 @@ function previewPdfOriginal() {
   const url = URL.createObjectURL(blob);
   previewFrame.src = url;
   previewContainer.style.display = 'flex';
-}
-
-function updateAllMarkers() {
-  updateMarkerPosition($('stampPicker'), $('stampMarker'), false);
-  updateMarkerPosition($('timePicker'), $('timeMarker'), true);
-  $('stampPicker').style.setProperty('--stamp-w', (state.stampSize.w / (state.pageWidth / PT_PER_MM || 210) * 100) + '%');
-  $('stampPicker').style.setProperty('--stamp-h', (state.stampSize.h / (state.pageHeight / PT_PER_MM || 297) * 100) + '%');
 }
 
 // ─── Apply Stamps ─────────────────────────────────────────
@@ -1429,7 +1583,7 @@ function selectStamp(id) {
   const stamp = state.stampLibrary.find(s => s.id === id);
   if (stamp) {
     state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
-    if (state.pageWidth > 0) updateAllMarkers();
+    if (pdfPageImage) drawCanvas();
   }
   renderStampList();
   updateApplyButton();
@@ -1511,6 +1665,9 @@ function resetAll() {
   state.modifiedPdfBytes = null;
   state.pdfDoc = null;
   state.pageCount = 0;
+  state.pageWidth = 0;
+  state.pageHeight = 0;
+  pdfPageImage = null;
   uploadZone.style.display = '';
   workspace.classList.remove('active');
   pageCount.classList.remove('visible');
@@ -1521,6 +1678,7 @@ function resetAll() {
   btnDownload.disabled = true;
   btnPrint.disabled = true;
   $('fileInput').value = '';
+  if (pageCanvas) { ctx.clearRect(0, 0, pageCanvas.width, pageCanvas.height); pageCanvas.width = 0; pageCanvas.height = 0; }
   setStatus('idle', 'Listo');
 }
 
@@ -1570,7 +1728,8 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ─── Initialize picker sizes on load ──────────────────────
+// ─── Initialize on load ───────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 loadSettings();
 if (state.timeFormat) $('timeFormat').value = state.timeFormat;
 if (state.stampPosition) { $('stampX').value = state.stampPosition.x; $('stampY').value = state.stampPosition.y; }
