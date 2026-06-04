@@ -285,6 +285,8 @@ body::before{
 }
 .upload-zone.drag-over{border-style:solid}
 .upload-icon{
+  appearance:none;
+  border:1px solid var(--border);
   width:64px;
   height:64px;
   border-radius:16px;
@@ -294,8 +296,12 @@ body::before{
   justify-content:center;
   font-size:1.8rem;
   margin-bottom:16px;
-  border:1px solid var(--border);
+  color:var(--text);
+  cursor:pointer;
+  transition:transform var(--transition),border-color var(--transition),background var(--transition);
 }
+.upload-icon:hover{transform:translateY(-1px);border-color:var(--red);background:var(--surface3)}
+.upload-icon:focus-visible{outline:2px solid var(--red);outline-offset:4px}
 .upload-zone h3{font-size:1.1rem;font-weight:600;margin-bottom:4px}
 .upload-zone p{color:var(--text3);font-size:0.82rem}
 .upload-hint{
@@ -313,7 +319,7 @@ body::before{
 .workspace{display:none;gap:14px;min-height:0}
 .workspace.active{
   display:grid;
-  grid-template-columns:minmax(380px,1fr) minmax(270px,340px);
+  grid-template-columns:minmax(0,1fr);
   grid-template-rows:auto minmax(0,1fr) auto;
   align-items:start;
 }
@@ -618,26 +624,9 @@ body::before{
 .modal input[type="file"]::file-selector-button:hover{background:var(--border)}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
-/* Preview */
-.preview-container{
-  grid-column:2;
-  grid-row:2;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  overflow:hidden;
-  min-height:0;
-  height:min(42vh,360px);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.preview-container iframe{width:100%;height:100%;min-height:0;border:none}
-
 /* Responsive */
 @media(max-width:1080px){
   .workspace.active{grid-template-columns:1fr}
-  .preview-container{grid-column:1;grid-row:auto;height:340px}
   .editor-card{grid-template-columns:1fr}
   .controls-row{grid-template-columns:1fr 1fr}
 }
@@ -684,8 +673,8 @@ body::before{
   </aside>
 
   <main class="main-content" id="mainContent">
-    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-      <div class="upload-icon">📄</div>
+    <div class="upload-zone" id="uploadZone" onclick="openPdfPicker()" role="button" tabindex="0" onkeydown="handleUploadZoneKeydown(event)">
+      <button class="upload-icon" type="button" onclick="openPdfPicker(event)" aria-label="Seleccionar PDF">📄</button>
       <h3>Carga tu guía de despacho</h3>
       <p>Arrastra un archivo PDF o haz clic para seleccionarlo</p>
       <span class="upload-hint">PDF hasta 50 MB · Múltiples páginas</span>
@@ -749,13 +738,8 @@ body::before{
 
       <div class="btn-group">
         <button class="btn btn-primary" id="btnApply" onclick="applyStamps()" disabled>✦ Aplicar Sellos a Todas las Páginas</button>
-        <button class="btn btn-secondary" id="btnPreview" onclick="previewPdf()" disabled>👁 Vista Previa</button>
         <button class="btn btn-secondary" id="btnDownload" onclick="downloadPdf()" disabled>⬇ Descargar PDF</button>
         <button class="btn btn-ghost" id="btnPrint" onclick="printPdf()" disabled>🖨 Imprimir</button>
-      </div>
-
-      <div class="preview-container" id="previewContainer" style="display:none">
-        <iframe id="previewFrame"></iframe>
       </div>
     </div>
   </main>
@@ -827,12 +811,9 @@ const stampList = $('stampList');
 const pageCount = $('pageCount');
 const fileBadge = $('fileBadge');
 const btnApply = $('btnApply');
-const btnPreview = $('btnPreview');
 const btnDownload = $('btnDownload');
 const btnPrint = $('btnPrint');
 const timeDisplay = $('timeDisplay');
-const previewContainer = $('previewContainer');
-const previewFrame = $('previewFrame');
 const toastContainer = $('toastContainer');
 const pageCanvas = $('pageCanvas');
 const markerCanvas = $('markerCanvas');
@@ -1121,6 +1102,17 @@ function formatTime(date, fmt) {
 }
 
 // ─── PDF Handling ─────────────────────────────────────────
+function openPdfPicker(event) {
+  if (event) event.stopPropagation();
+  $('fileInput').click();
+}
+
+function handleUploadZoneKeydown(event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  openPdfPicker();
+}
+
 async function handleFileSelect(e) {
   const file = e.target.files[0];
   if (file) loadPdf(file);
@@ -1156,11 +1148,7 @@ async function loadPdf(file) {
     // Render page to canvas
     await renderPageToCanvas();
 
-    // Preview original in iframe
-    previewPdfOriginal();
-
     updateApplyButton();
-    btnPreview.disabled = false;
     state.modifiedPdfBytes = copyBytes(state.pdfBytes);
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' páginas');
@@ -1176,12 +1164,6 @@ async function loadPdf(file) {
   } finally {
     state._loading = false;
   }
-}
-
-function previewPdfOriginal() {
-  const blob = new Blob([copyBytes(state.pdfBytes)], { type: 'application/pdf' });
-  previewFrame.src = URL.createObjectURL(blob);
-  previewContainer.style.display = 'flex';
 }
 
 // ─── Apply Stamps ─────────────────────────────────────────
@@ -1224,10 +1206,6 @@ async function applyStamps() {
     }
 
     state.modifiedPdfBytes = await pdfDoc.save();
-    const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
-    previewFrame.src = URL.createObjectURL(blob);
-    previewContainer.style.display = 'flex';
-
     btnDownload.disabled = false;
     btnPrint.disabled = false;
     setStatus('ready', 'Sellos aplicados — listo para descargar');
@@ -1240,14 +1218,6 @@ async function applyStamps() {
     btnApply.disabled = !state.selectedStampId;
     btnApply.textContent = '✦ Aplicar Sellos a Todas las Páginas';
   }
-}
-
-function previewPdf() {
-  if (!state.modifiedPdfBytes) { toast('Aplica los sellos primero', 'info'); return; }
-  const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
-  previewFrame.src = URL.createObjectURL(blob);
-  previewContainer.style.display = 'flex';
-  previewContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
 function downloadPdf() {
@@ -1391,9 +1361,7 @@ function resetAll() {
   uploadZone.style.display = '';
   workspace.classList.remove('active');
   pageCount.classList.remove('visible');
-  previewContainer.style.display = 'none';
-  previewFrame.src = '';
-  btnApply.disabled = true; btnPreview.disabled = true;
+  btnApply.disabled = true;
   btnDownload.disabled = true; btnPrint.disabled = true;
   $('fileInput').value = '';
   pageCanvas.width = 0; pageCanvas.height = 0;
