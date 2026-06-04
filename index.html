@@ -808,12 +808,12 @@ markerCanvas.addEventListener('mousedown', e => {
   const hitPad = 12;
   // Check stamp hit area
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
-  if (sx > scx - sw/2 - hitPad && sx < scx + sw/2 + hitPad && sy > scy - sh/2 - hitPad && sy < scy + sh/2 + hitPad) {
+  if (sx > scx - hitPad && sx < scx + sw + hitPad && sy > scy - hitPad && sy < scy + sh + hitPad) {
     draggingMarker = 'stamp'; markerCanvas.style.cursor = 'grabbing'; e.preventDefault(); return;
   }
   // Check time hit area
   const tcx = timeCanvasX(), tcy = timeCanvasY();
-  if (sx > tcx - 30 && sx < tcx + 30 && sy > tcy - 14 && sy < tcy + 14) {
+  if (sx > tcx - hitPad && sx < tcx + 70 + hitPad && sy > tcy - hitPad && sy < tcy + 18 + hitPad) {
     draggingMarker = 'time'; markerCanvas.style.cursor = 'grabbing'; e.preventDefault(); return;
   }
   // Place active marker
@@ -931,11 +931,11 @@ function drawMarkers() {
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
   mctx.save();
   mctx.strokeStyle = '#e8111b'; mctx.lineWidth = 2.5; mctx.setLineDash([6, 3]);
-  mctx.strokeRect(scx - sw/2, scy - sh/2, sw, sh); mctx.setLineDash([]);
+  mctx.strokeRect(scx, scy, sw, sh); mctx.setLineDash([]);
   mctx.fillStyle = 'rgba(232,17,27,0.15)';
-  mctx.fillRect(scx - sw/2, scy - sh/2, sw, sh);
+  mctx.fillRect(scx, scy, sw, sh);
   mctx.fillStyle = '#e8111b'; mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-  mctx.textAlign = 'center'; mctx.fillText('TIMBRE', scx, scy - sh/2 - 7);
+  mctx.textAlign = 'left'; mctx.fillText('TIMBRE', scx, Math.max(12, scy - 7));
   mctx.restore();
 
   // Time
@@ -946,11 +946,11 @@ function drawMarkers() {
   const tm = mctx.measureText(timeLabel);
   const tpad = 8, tw = tm.width + tpad * 2, th = 18;
   mctx.fillStyle = 'rgba(59,130,246,0.14)';
-  mctx.fillRect(tcx - tw/2, tcy - th/2, tw, th);
+  mctx.fillRect(tcx, tcy, tw, th);
   mctx.strokeStyle = '#3b82f6'; mctx.lineWidth = 2; mctx.setLineDash([4, 2]);
-  mctx.strokeRect(tcx - tw/2, tcy - th/2, tw, th); mctx.setLineDash([]);
-  mctx.fillStyle = '#1e40af'; mctx.textAlign = 'center'; mctx.textBaseline = 'middle';
-  mctx.fillText(timeLabel, tcx, tcy);
+  mctx.strokeRect(tcx, tcy, tw, th); mctx.setLineDash([]);
+  mctx.fillStyle = '#1e40af'; mctx.textAlign = 'left'; mctx.textBaseline = 'top';
+  mctx.fillText(timeLabel, tcx + tpad, tcy + 3);
   mctx.restore();
 
   // Crosshairs
