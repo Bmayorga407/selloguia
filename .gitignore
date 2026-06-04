@@ -1,0 +1,44 @@
+# macOS / editor noise
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+
+# Secrets and local configuration
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+id_rsa*
+id_ed25519*
+
+# Company/client documents should never live in this public web repo.
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.xlsm
+*.csv
+*.zip
+*.rar
+*.7z
+
+# Local scratch folders
+tmp/
+temp/
+scratch/
+private/
+company/
+empresa/
+clientes/
+documentos/
+guias/
+guias-de-despacho/

@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+blocked_paths="$(git diff --cached --name-only --diff-filter=ACMR | grep -Ei '(^|/)(\.env|.*\.(env|pdf|docx?|xlsx?|xlsm|csv|zip|rar|7z|pem|key|p12|pfx|cer|crt))$|(^|/)(private|company|empresa|clientes|documentos|guias|guias-de-despacho)(/|$)' || true)"
+
+if [ -n "$blocked_paths" ]; then
+  cat <<'MSG'
+Commit detenido por seguridad.
+
+Este repo es publico/simple y solo deberia guardar el sitio web.
+Hay archivos de documentos, llaves o carpetas privadas en el commit:
+MSG
+  printf '%s\n' "$blocked_paths"
+  cat <<'MSG'
+
+Quita esos archivos del commit y vuelve a intentar.
+MSG
+  exit 1
+fi
+
+secret_hits="$(git diff --cached -U0 -- '*.html' '*.js' '*.css' '*.json' '*.md' 2>/dev/null | grep '^+' | grep -v '^+++' | grep -Ei '(api[_-]?key|client[_-]?secret|secret|password|token|authorization)[[:space:]_:-]*=|bearer[[:space:]][A-Za-z0-9._-]+|github_pat|ghp_[A-Za-z0-9]|sk-[A-Za-z0-9]' || true)"
+
+if [ -n "$secret_hits" ]; then
+  cat <<'MSG'
+Commit detenido por posible secreto.
+
+Vi palabras como token, password, secret o API key en los cambios.
+Si era texto normal, revisalo igual antes de subirlo.
+MSG
+  exit 1
+fi
+
+exit 0
