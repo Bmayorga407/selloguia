@@ -12,15 +12,15 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #08080c;
-  --surface: #111118;
-  --surface2: #181825;
-  --surface3: #1e1e2e;
-  --border: #282838;
-  --border-light: #323248;
-  --text: #e2e2ed;
-  --text2: #a0a0b8;
-  --text3: #686880;
+  --bg: #0b0c10;
+  --surface: #12141a;
+  --surface2: #191c24;
+  --surface3: #202531;
+  --border: #2a2f3b;
+  --border-light: #3a4150;
+  --text: #f1f3f7;
+  --text2: #b4bac6;
+  --text3: #727b8c;
   --red: #e8111b;
   --red-glow: rgba(232,17,27,0.25);
   --green: #34d399;
@@ -49,9 +49,7 @@ body::before{
   content:'';
   position:fixed;
   inset:0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%,rgba(232,17,27,0.04) 0%,transparent 60%),
-    radial-gradient(ellipse 40% 50% at 80% 100%,rgba(232,17,27,0.03) 0%,transparent 60%);
+  background:linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%);
   pointer-events:none;
   z-index:0;
 }
@@ -65,9 +63,10 @@ body::before{
   align-items:center;
   justify-content:space-between;
   padding:0 28px;
-  height:56px;
-  background:var(--surface);
+  height:54px;
+  background:rgba(18,20,26,0.94);
   border-bottom:1px solid var(--border);
+  backdrop-filter:blur(18px);
 }
 .logo{
   display:flex;
@@ -75,7 +74,7 @@ body::before{
   gap:10px;
   font-weight:700;
   font-size:1.15rem;
-  letter-spacing:-0.3px;
+  letter-spacing:0;
 }
 .logo mark{
   background:var(--red);
@@ -107,20 +106,21 @@ body::before{
 /* Layout */
 .app-layout{
   display:grid;
-  grid-template-columns:280px 1fr;
+  grid-template-columns:260px minmax(0,1fr);
   flex:1;
   position:relative;
   z-index:1;
   min-height:0;
+  height:calc(100vh - 82px);
 }
 
 /* Sidebar */
 .sidebar{
-  background:var(--surface);
+  background:rgba(18,20,26,0.86);
   border-right:1px solid var(--border);
   display:flex;
   flex-direction:column;
-  padding:20px 16px;
+  padding:18px 14px;
   gap:16px;
   overflow-y:auto;
 }
@@ -133,7 +133,7 @@ body::before{
   font-size:0.8rem;
   font-weight:600;
   text-transform:uppercase;
-  letter-spacing:0.8px;
+  letter-spacing:0;
   color:var(--text3);
 }
 .btn-icon{
@@ -258,9 +258,10 @@ body::before{
 .main-content{
   display:flex;
   flex-direction:column;
-  padding:24px 28px;
-  gap:20px;
-  overflow-y:auto;
+  padding:18px 22px;
+  gap:14px;
+  overflow:hidden;
+  min-width:0;
 }
 
 /* Upload zone */
@@ -309,9 +310,21 @@ body::before{
 }
 
 /* Workspace */
-.workspace{display:none;flex-direction:column;gap:20px}
-.workspace.active{display:flex}
-.workspace-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.workspace{display:none;gap:14px;min-height:0}
+.workspace.active{
+  display:grid;
+  grid-template-columns:minmax(380px,1fr) minmax(270px,340px);
+  grid-template-rows:auto minmax(0,1fr) auto;
+  align-items:start;
+}
+.workspace-toolbar{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
 .file-badge{
   display:flex;
   align-items:center;
@@ -328,21 +341,35 @@ body::before{
 .file-badge .close:hover{color:var(--red)}
 
 /* Editor */
-.editor-section{display:flex;flex-direction:column;gap:16px}
+.editor-section{min-height:0}
 .editor-card{
-  background:var(--surface);
+  background:rgba(18,20,26,0.92);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-  gap:16px;
+  padding:16px;
+  display:grid;
+  grid-template-columns:minmax(300px,1fr) 300px;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:14px;
+  min-height:0;
 }
-.editor-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
-.editor-header h3{font-size:0.82rem;font-weight:600;color:var(--text2)}
+.editor-header{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.editor-header h3{
+  font-size:0.78rem;
+  font-weight:650;
+  color:var(--text2);
+  letter-spacing:0;
+}
 .mode-toggle{display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px}
 .mode-btn{
-  padding:7px 16px;
+  padding:7px 12px;
   border:none;
   border-radius:6px;
   font-size:0.78rem;
@@ -359,24 +386,47 @@ body::before{
 
 .canvas-wrapper{
   position:relative;
-  width:100%;
+  width:min(100%,430px);
+  max-height:58vh;
+  aspect-ratio:8.5 / 11;
   border-radius:8px;
   overflow:hidden;
   border:1px solid var(--border-light);
-  background:#fff;
+  background:#e9edf3;
   box-shadow:0 2px 24px rgba(0,0,0,0.4);
   user-select:none;
   line-height:0;
+  align-self:start;
+  justify-self:center;
+  padding:10px;
 }
-.canvas-wrapper canvas{display:block;width:100%;height:auto}
-.canvas-wrapper canvas:last-child{position:absolute;top:0;left:0;width:100%;height:100%}
+.canvas-wrapper canvas{
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius:4px;
+  box-shadow:0 8px 24px rgba(5,8,14,0.22);
+}
+.canvas-wrapper canvas:last-child{
+  position:absolute;
+  top:10px;
+  left:10px;
+  width:calc(100% - 20px);
+  height:auto;
+  box-shadow:none;
+}
 
 #markerCanvas{cursor:crosshair}
 
 /* Controls */
-.controls-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.controls-row{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+  align-self:start;
+}
 .control-group{
-  background:var(--surface2);
+  background:rgba(25,28,36,0.86);
   border:1px solid var(--border);
   border-radius:var(--radius-sm);
   padding:14px;
@@ -400,7 +450,7 @@ body::before{
   font-size:0.68rem;
   color:var(--text3);
   text-transform:uppercase;
-  letter-spacing:0.5px;
+  letter-spacing:0;
   font-weight:600;
 }
 .coord-field input{
@@ -422,14 +472,14 @@ body::before{
   display:flex;
   align-items:center;
   gap:8px;
-  background:var(--surface2);
+  background:rgba(25,28,36,0.86);
   border:1px solid var(--border);
   border-radius:var(--radius-sm);
   padding:10px 16px;
   font-family:'DM Mono',monospace;
 }
 .live-time .label{font-size:0.72rem;color:var(--text3)}
-.live-time .value{font-size:1.1rem;font-weight:500;color:var(--green);letter-spacing:0.5px}
+.live-time .value{font-size:1.05rem;font-weight:700;color:var(--green);letter-spacing:0}
 
 /* Buttons */
 .btn{
@@ -455,7 +505,13 @@ body::before{
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid transparent}
 .btn-ghost:hover{background:var(--surface2);border-color:var(--border);color:var(--text)}
 .btn-sm{padding:6px 12px;font-size:0.78rem;border-radius:6px}
-.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+.btn-group{
+  grid-column:1 / -1;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
 
 /* Settings */
 .settings-row{display:flex;align-items:center;gap:12px}
@@ -535,7 +591,7 @@ body::before{
 @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal h3{font-size:1rem;font-weight:700;margin-bottom:16px}
 .modal .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.modal label{font-size:0.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px}
+.modal label{font-size:0.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0}
 .modal input[type="text"],.modal input[type="file"]{
   background:var(--surface2);
   border:1px solid var(--border);
@@ -564,29 +620,42 @@ body::before{
 
 /* Preview */
 .preview-container{
+  grid-column:2;
+  grid-row:2;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:var(--radius);
   overflow:hidden;
-  flex:1;
-  min-height:400px;
+  min-height:0;
+  height:min(42vh,360px);
   display:flex;
   align-items:center;
   justify-content:center;
 }
-.preview-container iframe{width:100%;height:100%;min-height:500px;border:none}
+.preview-container iframe{width:100%;height:100%;min-height:0;border:none}
 
 /* Responsive */
+@media(max-width:1080px){
+  .workspace.active{grid-template-columns:1fr}
+  .preview-container{grid-column:1;grid-row:auto;height:340px}
+  .editor-card{grid-template-columns:1fr}
+  .controls-row{grid-template-columns:1fr 1fr}
+}
 @media(max-width:860px){
+  .app-layout{height:auto;min-height:calc(100vh - 82px)}
   .app-layout{grid-template-columns:1fr}
   .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:200px}
   .controls-row{grid-template-columns:1fr}
+  .main-content{overflow:visible}
+  .canvas-wrapper{max-height:56vh}
 }
 @media(max-width:640px){
   .header{padding:0 16px}
   .main-content{padding:16px}
   .btn-group{flex-direction:column}
   .btn{justify-content:center}
+  .toast-container{left:12px;right:12px;bottom:12px}
+  .toast{max-width:none;padding:10px 12px}
 }
 </style>
 </head>
@@ -639,6 +708,7 @@ body::before{
         <div class="editor-card">
           <div class="editor-header">
             <h3>Haz clic sobre la guía para posicionar cada elemento</h3>
+            <button class="btn btn-secondary btn-sm" onclick="applyGuidePreset()">Ajustar a guía Embonor</button>
             <div class="mode-toggle" id="modeToggle">
               <button class="mode-btn active" data-mode="stamp">📌 Posicionar Timbre</button>
               <button class="mode-btn" data-mode="time">🕐 Posicionar Hora</button>
@@ -652,16 +722,16 @@ body::before{
             <div class="control-group">
               <div class="control-group-label"><span class="dot dot-stamp"></span> Timbre</div>
               <div class="coord-row">
-                <div class="coord-field"><label>X mm</label><input type="number" id="stampX" value="20" step="0.5" min="0"></div>
-                <div class="coord-field"><label>Y mm</label><input type="number" id="stampY" value="20" step="0.5" min="0"></div>
-                <div class="coord-field size-field"><label>Ancho mm</label><input type="number" id="stampW" value="25" step="0.5" min="5"></div>
+                <div class="coord-field"><label>X mm</label><input type="number" id="stampX" value="2" step="0.5" min="0"></div>
+                <div class="coord-field"><label>Y mm</label><input type="number" id="stampY" value="232" step="0.5" min="0"></div>
+                <div class="coord-field size-field"><label>Ancho mm</label><input type="number" id="stampW" value="30" step="0.5" min="5"></div>
               </div>
             </div>
             <div class="control-group">
               <div class="control-group-label"><span class="dot dot-time"></span> Hora</div>
               <div class="coord-row">
-                <div class="coord-field"><label>X mm</label><input type="number" id="timeX" value="48" step="0.5" min="0"></div>
-                <div class="coord-field"><label>Y mm</label><input type="number" id="timeY" value="20" step="0.5" min="0"></div>
+                <div class="coord-field"><label>X mm</label><input type="number" id="timeX" value="74" step="0.5" min="0"></div>
+                <div class="coord-field"><label>Y mm</label><input type="number" id="timeY" value="236" step="0.5" min="0"></div>
               </div>
               <div class="settings-row" style="margin-top:8px">
                 <label>Formato:</label>
@@ -730,15 +800,24 @@ const state = {
   pageHeight: 0,
   stampLibrary: [],
   selectedStampId: null,
-  stampPosition: { x: 20, y: 20 },
-  stampSize: { w: 25, h: 25 },
-  timePosition: { x: 48, y: 20 },
+  stampPosition: { x: 2, y: 232 },
+  stampSize: { w: 30, h: 30 },
+  timePosition: { x: 74, y: 236 },
   timeFormat: 'HH:mm',
   _loading: false,
 };
 
 const PT_PER_MM = 72 / 25.4;
+const DEFAULT_PAGE_POINTS = { width: 612, height: 792 };
 const copyBytes = bytes => new Uint8Array(bytes);
+const SETTINGS_VERSION = 2;
+const TIME_FONT_SIZE_PT = 12;
+const GUIDE_PRESET = {
+  stampPosition: { x: 2, y: 232 },
+  stampSize: { w: 30, h: 30 },
+  timePosition: { x: 74, y: 236 },
+  timeFormat: 'HH:mm',
+};
 
 // ─── DOM refs ────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -764,6 +843,8 @@ const mctx = markerCanvas.getContext('2d');
 // ─── Canvas editor state ─────────────────────────────────
 let activeMode = 'stamp';
 let draggingMarker = null;
+let stampPreviewImage = null;
+let stampPreviewSource = '';
 
 // ─── Init ─────────────────────────────────────────────────
 if (typeof pdfjsLib !== 'undefined') {
@@ -813,7 +894,8 @@ markerCanvas.addEventListener('mousedown', e => {
   }
   // Check time hit area
   const tcx = timeCanvasX(), tcy = timeCanvasY();
-  if (sx > tcx - hitPad && sx < tcx + 70 + hitPad && sy > tcy - hitPad && sy < tcy + 18 + hitPad) {
+  const timeSize = timeMarkerSize();
+  if (sx > tcx - hitPad && sx < tcx + timeSize.w + hitPad && sy > tcy - hitPad && sy < tcy + timeSize.h + hitPad) {
     draggingMarker = 'time'; markerCanvas.style.cursor = 'grabbing'; e.preventDefault(); return;
   }
   // Place active marker
@@ -849,6 +931,28 @@ function stampCanvasW(){ return state.stampSize.w / (state.pageWidth / PT_PER_MM
 function stampCanvasH(){ return state.stampSize.h / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
 function timeCanvasX(){ return state.timePosition.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
 function timeCanvasY(){ return state.timePosition.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
+function selectedStamp(){ return state.stampLibrary.find(s => s.id === state.selectedStampId) || null; }
+function timePreviewFontSize(){ return Math.max(12, TIME_FONT_SIZE_PT * (pageCanvas.height / state.pageHeight)); }
+function timeMarkerSize(){
+  const fontSize = timePreviewFontSize();
+  const label = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+  mctx.save();
+  mctx.font = '800 ' + fontSize + 'px "DM Mono", ui-monospace, monospace';
+  const w = mctx.measureText(label).width;
+  mctx.restore();
+  return { w: Math.ceil(w), h: Math.ceil(fontSize * 1.18) };
+}
+
+function getStampPreviewImage(stamp) {
+  if (!stamp || !stamp.dataUrl) return null;
+  if (stampPreviewSource !== stamp.dataUrl) {
+    stampPreviewSource = stamp.dataUrl;
+    stampPreviewImage = new Image();
+    stampPreviewImage.onload = () => drawMarkers();
+    stampPreviewImage.src = stamp.dataUrl;
+  }
+  return stampPreviewImage;
+}
 
 function setMarkerFromCanvas(cx, cy, which) {
   const mmX = cx / pageCanvas.width * (state.pageWidth / PT_PER_MM);
@@ -890,6 +994,18 @@ function syncInputsFromState() {
   $('timeY').value = state.timePosition.y;
 }
 
+function applyGuidePreset() {
+  state.stampPosition = { ...GUIDE_PRESET.stampPosition };
+  state.stampSize = { ...GUIDE_PRESET.stampSize };
+  state.timePosition = { ...GUIDE_PRESET.timePosition };
+  state.timeFormat = GUIDE_PRESET.timeFormat;
+  $('timeFormat').value = state.timeFormat;
+  syncInputsFromState();
+  drawMarkers();
+  saveSettings();
+  toast('Posición ajustada para guía Embonor', 'success');
+}
+
 // ─── Page rendering ───────────────────────────────────────
 async function renderPageToCanvas() {
   if (!state.pdfBytes || !state.pageWidth) return;
@@ -899,14 +1015,15 @@ async function renderPageToCanvas() {
   }
   try {
     await new Promise(r => requestAnimationFrame(r));
-    let w = canvasWrapper.clientWidth;
-    if (!w || w < 50) { await new Promise(r => setTimeout(r, 150)); w = canvasWrapper.clientWidth; }
+    let w = canvasWrapper.clientWidth - 20;
+    if (!w || w < 50) { await new Promise(r => setTimeout(r, 150)); w = canvasWrapper.clientWidth - 20; }
     if (!w || w < 50) { toast('No se pudo determinar el ancho del visor', 'error'); return; }
 
     const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(state.pdfBytes) }).promise;
     const page = await pdfDoc.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
-    const scale = Math.min(w, 900) / viewport.width;
+    const maxPreviewHeight = Math.min(window.innerHeight * 0.55, 560);
+    const scale = Math.min(Math.min(w, 900) / viewport.width, maxPreviewHeight / viewport.height);
     const sv = page.getViewport({ scale });
 
     pageCanvas.width = sv.width;
@@ -929,28 +1046,42 @@ function drawMarkers() {
 
   // Stamp
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
+  const stamp = selectedStamp();
+  const stampImage = getStampPreviewImage(stamp);
   mctx.save();
-  mctx.strokeStyle = '#e8111b'; mctx.lineWidth = 2.5; mctx.setLineDash([6, 3]);
-  mctx.strokeRect(scx, scy, sw, sh); mctx.setLineDash([]);
-  mctx.fillStyle = 'rgba(232,17,27,0.15)';
-  mctx.fillRect(scx, scy, sw, sh);
-  mctx.fillStyle = '#e8111b'; mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-  mctx.textAlign = 'left'; mctx.fillText('TIMBRE', scx, Math.max(12, scy - 7));
+  if (stampImage && stampImage.complete && stampImage.naturalWidth) {
+    mctx.globalAlpha = 0.92;
+    mctx.drawImage(stampImage, scx, scy, sw, sh);
+    mctx.globalAlpha = 1;
+    mctx.strokeStyle = 'rgba(232,17,27,0.95)';
+    mctx.lineWidth = 1.5;
+    mctx.strokeRect(scx, scy, sw, sh);
+  } else {
+    mctx.strokeStyle = '#e8111b'; mctx.lineWidth = 2.5; mctx.setLineDash([6, 3]);
+    mctx.strokeRect(scx, scy, sw, sh); mctx.setLineDash([]);
+    mctx.fillStyle = 'rgba(232,17,27,0.15)';
+    mctx.fillRect(scx, scy, sw, sh);
+    mctx.fillStyle = '#e8111b'; mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+    mctx.textAlign = 'left'; mctx.fillText('TIMBRE', scx, Math.max(12, scy - 7));
+  }
   mctx.restore();
 
   // Time
   const tcx = timeCanvasX(), tcy = timeCanvasY();
   const timeLabel = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+  const timeFontSize = timePreviewFontSize();
+  const timeSize = timeMarkerSize();
   mctx.save();
-  mctx.font = 'bold 12px "DM Mono", monospace'; mctx.textAlign = 'left';
-  const tm = mctx.measureText(timeLabel);
-  const tpad = 8, tw = tm.width + tpad * 2, th = 18;
-  mctx.fillStyle = 'rgba(59,130,246,0.14)';
-  mctx.fillRect(tcx, tcy, tw, th);
-  mctx.strokeStyle = '#3b82f6'; mctx.lineWidth = 2; mctx.setLineDash([4, 2]);
-  mctx.strokeRect(tcx, tcy, tw, th); mctx.setLineDash([]);
-  mctx.fillStyle = '#1e40af'; mctx.textAlign = 'left'; mctx.textBaseline = 'top';
-  mctx.fillText(timeLabel, tcx + tpad, tcy + 3);
+  mctx.font = '800 ' + timeFontSize + 'px "DM Mono", ui-monospace, monospace';
+  mctx.textAlign = 'left';
+  mctx.textBaseline = 'top';
+  mctx.fillStyle = '#050505';
+  mctx.fillText(timeLabel, tcx, tcy);
+  mctx.strokeStyle = 'rgba(59,130,246,0.62)';
+  mctx.lineWidth = 1.25;
+  mctx.setLineDash([4, 3]);
+  mctx.strokeRect(tcx - 3, tcy - 3, timeSize.w + 6, timeSize.h + 6);
+  mctx.setLineDash([]);
   mctx.restore();
 
   // Crosshairs
@@ -1010,8 +1141,8 @@ async function loadPdf(file) {
 
     if (pages.length > 0) {
       const size = pages[0].getSize();
-      state.pageWidth = size.width;
-      state.pageHeight = size.height;
+      state.pageWidth = size.width || DEFAULT_PAGE_POINTS.width;
+      state.pageHeight = size.height || DEFAULT_PAGE_POINTS.height;
     }
 
     // Show workspace first so canvas wrapper has width
@@ -1073,10 +1204,10 @@ async function applyStamps() {
     const stampImage = stamp.dataUrl.startsWith('data:image/png')
       ? await pdfDoc.embedPng(stampBytes)
       : await pdfDoc.embedJpg(stampBytes);
-    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
     const now = new Date();
     const timeStr = formatTime(now, state.timeFormat);
-    const fontSize = 10;
+    const fontSize = TIME_FONT_SIZE_PT;
 
     const stampWpt = state.stampSize.w * PT_PER_MM;
     const stampHpt = stampWpt * (stamp.natH / stamp.natW);
@@ -1148,6 +1279,7 @@ function saveStampLibrary() { localStorage.setItem('selloguia_stamps', JSON.stri
 function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('selloguia_settings') || '{}');
+    if (s.version !== SETTINGS_VERSION) return;
     if (s.stampPosition) state.stampPosition = s.stampPosition;
     if (s.timePosition) state.timePosition = s.timePosition;
     if (s.stampSize) state.stampSize = s.stampSize;
@@ -1156,6 +1288,7 @@ function loadSettings() {
 }
 function saveSettings() {
   localStorage.setItem('selloguia_settings', JSON.stringify({
+    version: SETTINGS_VERSION,
     stampPosition: state.stampPosition, timePosition: state.timePosition,
     stampSize: state.stampSize, timeFormat: state.timeFormat,
   }));
@@ -1235,8 +1368,10 @@ function saveNewStamp() {
       };
       state.stampLibrary.push(stamp);
       state.selectedStampId = stamp.id;
+      state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
       saveStampLibrary();
       renderStampList();
+      if (pageCanvas.width) drawMarkers();
       closeAddStampModal();
       toast('Timbre de ' + name + ' agregado', 'success');
     };
