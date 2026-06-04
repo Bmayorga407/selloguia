@@ -1192,9 +1192,22 @@ $('timeFormat').addEventListener('change', e => { state.timeFormat = e.target.va
 // ─── Canvas rendering ──────────────────────────────────────
 async function renderPageToCanvas() {
   if (!state.pdfBytes || !state.pageWidth) return;
+  if (typeof pdfjsLib === 'undefined') {
+    console.error('pdf.js library not loaded');
+    return;
+  }
 
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // Ensure DOM has layout before measuring
+    await new Promise(r => requestAnimationFrame(r));
+
+    const wrapperWidth = canvasWrapper.clientWidth;
+    if (!wrapperWidth || wrapperWidth < 50) {
+      // Retry after another frame
+      await new Promise(r => requestAnimationFrame(r));
+      if (!canvasWrapper.clientWidth || canvasWrapper.clientWidth < 50) return;
+    }
+
     const pdfDoc = await pdfjsLib.getDocument({ data: state.pdfBytes }).promise;
     const page = await pdfDoc.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
@@ -1210,12 +1223,22 @@ async function renderPageToCanvas() {
     const renderCtx = pageCanvas.getContext('2d');
     await page.render({ canvasContext: renderCtx, viewport: scaledViewport }).promise;
 
-    // Create an ImageBitmap for fast redraws
-    pdfPageImage = await createImageBitmap(pageCanvas);
+    // Create an ImageBitmap for fast redraws (with fallback)
+    try {
+      pdfPageImage = await createImageBitmap(pageCanvas);
+    } catch {
+      // Fallback: clone canvas to offscreen and use that
+      const offscreen = document.createElement('canvas');
+      offscreen.width = pageCanvas.width;
+      offscreen.height = pageCanvas.height;
+      offscreen.getContext('2d').drawImage(pageCanvas, 0, 0);
+      pdfPageImage = offscreen;
+    }
 
     drawCanvas();
   } catch (err) {
     console.error('Error rendering page:', err);
+    toast('Error al renderizar la página: ' + err.message, 'error');
   }
 }
 
@@ -1352,8 +1375,6 @@ async function loadPdf(file) {
       const size = pages[0].getSize();
       state.pageWidth = size.width;
       state.pageHeight = size.height;
-      pdfPageImage = null;
-      await renderPageToCanvas();
     }
 
     // Update UI
@@ -1363,6 +1384,10 @@ async function loadPdf(file) {
     pageCount.classList.add('visible');
     fileBadge.querySelector('.name').textContent = file.name;
     fileBadge.querySelector('.pages').textContent = pages.length + ' página' + (pages.length !== 1 ? 's' : '');
+
+    // Render page to canvas after DOM is visible
+    pdfPageImage = null;
+    await renderPageToCanvas();
 
     // Show original PDF preview
     previewPdfOriginal();
@@ -1729,7 +1754,9 @@ document.addEventListener('keydown', e => {
 });
 
 // ─── Initialize on load ───────────────────────────────────
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 loadSettings();
 if (state.timeFormat) $('timeFormat').value = state.timeFormat;
 if (state.stampPosition) { $('stampX').value = state.stampPosition.x; $('stampY').value = state.stampPosition.y; }
