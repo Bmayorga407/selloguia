@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SelloGuía — Automatiza tus guías de despacho</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08080c;
+  --surface: #111118;
+  --surface2: #181825;
+  --surface3: #1e1e2e;
+  --border: #282838;
+  --border-light: #323248;
+  --text: #e2e2ed;
+  --text2: #a0a0b8;
+  --text3: #686880;
+  --red: #e8111b;
+  --red-glow: rgba(232,17,27,0.25);
+  --red-dim: #9b0d13;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:15px; }
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,17,27,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 50% at 80% 100%, rgba(232,17,27,0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ---- HEADER ---- */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 56px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.3px;
+}
+
+.logo mark {
+  background: var(--red);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text3);
+  background: var(--surface2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  opacity: 0;
+  transform: translateX(8px);
+  transition: all var(--transition);
+}
+
+.page-count.visible { opacity:1; transform:translateX(0); }
+
+/* ---- LAYOUT ---- */
+.app-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+}
+
+/* ---- SIDEBAR ---- */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-header h2 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text3);
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all var(--transition);
+}
+
+.btn-icon:hover {
+  background: var(--surface3);
+  border-color: var(--border-light);
+  color: var(--text);
+}
+
+.stamp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stamp-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+}
+
+.stamp-item:hover {
+  background: var(--surface3);
+  border-color: var(--border-light);
+}
+
+.stamp-item.selected {
+  border-color: var(--red);
+  background: var(--red-glow);
+}
+
+.stamp-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.stamp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 2px;
+}
+
+.stamp-thumb .placeholder {
+  color: var(--text3);
+  font-size: 1.2rem;
+}
+
+.stamp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stamp-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stamp-meta {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.stamp-delete {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all var(--transition);
+}
+
+.stamp-item:hover .stamp-delete { opacity: 1; }
+.stamp-delete:hover { background: var(--red); color: #fff; }
+
+.sidebar-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text3);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.sidebar-empty .icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  opacity: 0.4;
+}
+
+/* ---- MAIN CONTENT ---- */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 28px;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* Upload Zone */
+.upload-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: all var(--transition);
+  cursor: pointer;
+  min-height: 320px;
+  position: relative;
+}
+
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--red);
+  background: var(--surface2);
+  box-shadow: inset 0 0 60px var(--red-glow);
+}
+
+.upload-zone.drag-over { border-style: solid; }
+
+.upload-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+.upload-zone h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.upload-zone p {
+  color: var(--text3);
+  font-size: 0.82rem;
+}
+
+.upload-hint {
+  margin-top: 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text3);
+  padding: 6px 14px;
+  background: var(--surface2);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+
+/* Workspace (after PDF loaded) */
+.workspace { display:none; flex-direction:column; gap:20px; }
+.workspace.active { display:flex; }
+
+.workspace-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.file-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.file-badge .name {
+  font-weight: 600;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-badge .pages {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text3);
+}
+
+.file-badge .close {
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 1rem;
+  padding: 2px;
+  transition: color var(--transition);
+}
+
+.file-badge .close:hover { color: var(--red); }
+
+/* Position Editor */
+.editor-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
+  .editor-section { grid-template-columns: 1fr; }
+}
+
+.editor-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.editor-card h3 {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text3);
+  margin-bottom: 14px;
+}
+
+.position-picker {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--page-ratio, 0.7727);
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  cursor: crosshair;
+  overflow: hidden;
+  max-width: 360px;
+  margin: 0 auto;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+/* grid lines to simulate a form */
+.position-picker::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 8.333% 8.333%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.position-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+  transition: none;
+}
+
+.marker-stamp {
+  width: var(--stamp-w, 48px);
+  height: var(--stamp-h, 48px);
+  border: 2px solid var(--red);
+  border-radius: 4px;
+  background: rgba(232,17,27,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: var(--red);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.marker-time {
+  width: var(--time-w, 56px);
+  height: 16px;
+  border: 2px solid #3b82f6;
+  border-radius: 3px;
+  background: rgba(59,130,246,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.55rem;
+  color: #3b82f6;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+}
+
+.position-picker:hover .marker-stamp,
+.position-picker:hover .marker-time {
+  opacity: 0.6;
+}
+
+.position-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.coord-row {
+  display: flex;
+  gap: 10px;
+}
+
+.coord-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coord-field label {
+  font-size: 0.68rem;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.coord-field input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.82rem;
+  width: 100%;
+  transition: border-color var(--transition);
+}
+
+.coord-field input:focus {
+  outline: none;
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-glow);
+}
+
+.size-field input {
+  max-width: 80px;
+}
+
+/* Live time display */
+.live-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-family: 'DM Mono', monospace;
+}
+
+.live-time .label {
+  font-size: 0.72rem;
+  color: var(--text3);
+}
+
+.live-time .value {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--green);
+  letter-spacing: 0.5px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--red-glow);
+}
+
+.btn-primary:hover {
+  background: #f01f29;
+  box-shadow: 0 4px 16px var(--red-glow);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--surface3);
+  border-color: var(--border-light);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 28px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text3);
+  font-family: 'DM Mono', monospace;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text3);
+}
+
+.status-dot.ready { background: var(--green); }
+.status-dot.processing { background: var(--amber); animation: pulse 1s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  background: var(--surface3);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  box-shadow: var(--shadow);
+  animation: slideIn 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+.toast.info { border-left: 3px solid #3b82f6; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 150ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: modalIn 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.modal .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.modal label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal input[type="text"],
+.modal input[type="file"] {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.modal input[type="text"]:focus {
+  outline: none;
+  border-color: var(--red);
+}
+
+.modal input[type="file"] {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.modal input[type="file"]::file-selector-button {
+  background: var(--surface3);
+  border: 1px solid var(--border-light);
+  border-radius: 5px;
+  padding: 6px 14px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: background var(--transition);
+}
+
+.modal input[type="file"]::file-selector-button:hover {
+  background: var(--border);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* Drag indicator */
+.drag-highlight {
+  outline: 3px solid var(--red);
+  outline-offset: -1px;
+}
+
+/* Preview iframe */
+.preview-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex: 1;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-container iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  border: none;
+}
+
+.preview-empty {
+  text-align: center;
+  color: var(--text3);
+  font-size: 0.85rem;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-row label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.settings-row select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .header { padding: 0 16px; }
+  .main-content { padding: 16px; }
+  .editor-section { grid-template-columns: 1fr; }
+  .btn-group { flex-direction: column; }
+  .btn { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    SelloGuía <mark>beta</mark>
+  </div>
+  <div class="header-right">
+    <span class="page-count" id="pageCount">0 págs</span>
+    <button class="btn-icon" onclick="resetAll()" title="Nuevo">⟳</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <!-- SIDEBAR: Stamp Library -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Biblioteca de Timbres</h2>
+      <button class="btn-icon" onclick="openAddStampModal()" title="Agregar timbre">+</button>
+    </div>
+    <div class="stamp-list" id="stampList">
+      <div class="sidebar-empty">
+        <div class="icon">🖼️</div>
+        <p>No hay timbres aún.<br>Agrega el primero con el botón +</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="mainContent">
+    <!-- Upload zone (visible when no PDF loaded) -->
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📄</div>
+      <h3>Carga tu guía de despacho</h3>
+      <p>Arrastra un archivo PDF o haz clic para seleccionarlo</p>
+      <span class="upload-hint">PDF hasta 50 MB · Múltiples páginas</span>
+    </div>
+
+    <!-- Workspace (visible after PDF loaded) -->
+    <div class="workspace" id="workspace">
+      <div class="workspace-toolbar">
+        <div class="file-badge" id="fileBadge">
+          <span class="name">--</span>
+          <span class="pages">·</span>
+          <span class="close" onclick="resetAll()">✕</span>
+        </div>
+        <div class="live-time" id="liveTime">
+          <span class="label">Hora actual</span>
+          <span class="value" id="timeDisplay">--:--:--</span>
+        </div>
+      </div>
+
+      <div class="editor-section">
+        <!-- Stamp Position Editor -->
+        <div class="editor-card">
+          <h3>📌 Posición del Timbre</h3>
+          <div class="position-picker" id="stampPicker">
+            <div class="position-marker marker-stamp" id="stampMarker">TIMBRE</div>
+          </div>
+          <div class="position-controls">
+            <div class="coord-row">
+              <div class="coord-field"><label>X (mm)</label><input type="number" id="stampX" value="20" step="0.5" min="0"></div>
+              <div class="coord-field"><label>Y (mm)</label><input type="number" id="stampY" value="20" step="0.5" min="0"></div>
+              <div class="coord-field size-field"><label>Ancho (mm)</label><input type="number" id="stampW" value="25" step="0.5" min="5"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timestamp Position Editor -->
+        <div class="editor-card">
+          <h3>🕐 Posición de la Hora</h3>
+          <div class="position-picker" id="timePicker">
+            <div class="position-marker marker-time" id="timeMarker">HH:MM</div>
+          </div>
+          <div class="position-controls">
+            <div class="coord-row">
+              <div class="coord-field"><label>X (mm)</label><input type="number" id="timeX" value="48" step="0.5" min="0"></div>
+              <div class="coord-field"><label>Y (mm)</label><input type="number" id="timeY" value="20" step="0.5" min="0"></div>
+            </div>
+            <div class="settings-row" style="margin-top:4px;">
+              <label>Formato:</label>
+              <select id="timeFormat">
+                <option value="HH:mm">HH:mm (14:30)</option>
+                <option value="HH:mm:ss">HH:mm:ss (14:30:25)</option>
+                <option value="dd/MM/yyyy HH:mm">dd/MM/yyyy HH:mm</option>
+                <option value="dd/MM/yyyy HH:mm:ss">dd/MM/yyyy HH:mm:ss</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btnApply" onclick="applyStamps()" disabled>
+          ✦ Aplicar Sellos a Todas las Páginas
+        </button>
+        <button class="btn btn-secondary" id="btnPreview" onclick="previewPdf()" disabled>
+          👁 Vista Previa
+        </button>
+        <button class="btn btn-secondary" id="btnDownload" onclick="downloadPdf()" disabled>
+          ⬇ Descargar PDF
+        </button>
+        <button class="btn btn-ghost" id="btnPrint" onclick="printPdf()" disabled>
+          🖨 Imprimir
+        </button>
+      </div>
+
+      <div class="preview-container" id="previewContainer" style="display:none;">
+        <iframe id="previewFrame"></iframe>
+      </div>
+    </div>
+  </main>
+</div>
+
+<footer class="status-bar">
+  <span class="status-dot" id="statusDot"></span>
+  <span id="statusText">Listo</span>
+</footer>
+
+<input type="file" id="fileInput" accept=".pdf" hidden onchange="handleFileSelect(event)">
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Add Stamp Modal -->
+<div class="modal-overlay" id="stampModal" style="display:none;" onclick="if(event.target===this)closeAddStampModal()">
+  <div class="modal">
+    <h3>Agregar Nuevo Timbre</h3>
+    <div class="form-group">
+      <label>Nombre de la persona</label>
+      <input type="text" id="stampNameInput" placeholder="Ej: Juan Pérez" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Imagen del timbre (PNG, JPG)</label>
+      <input type="file" id="stampFileInput" accept="image/png,image/jpeg,image/webp">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeAddStampModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveNewStamp()">Guardar Timbre</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+// ─── State ────────────────────────────────────────────────
+const state = {
+  pdfBytes: null,
+  modifiedPdfBytes: null,
+  pdfDoc: null,
+  pageCount: 0,
+  pageWidth: 0,   // PDF points
+  pageHeight: 0,  // PDF points
+  stampLibrary: [],
+  selectedStampId: null,
+  stampPosition: { x: 20, y: 20 },   // mm from top-left
+  stampSize: { w: 25, h: 25 },       // mm
+  timePosition: { x: 48, y: 20 },    // mm from top-left
+  timeFormat: 'HH:mm',
+};
+
+const PT_PER_MM = 72 / 25.4; // points per mm
+
+// ─── DOM refs ────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const uploadZone = $('uploadZone');
+const workspace = $('workspace');
+const stampList = $('stampList');
+const pageCount = $('pageCount');
+const fileBadge = $('fileBadge');
+const btnApply = $('btnApply');
+const btnPreview = $('btnPreview');
+const btnDownload = $('btnDownload');
+const btnPrint = $('btnPrint');
+const timeDisplay = $('timeDisplay');
+const previewContainer = $('previewContainer');
+const previewFrame = $('previewFrame');
+const toastContainer = $('toastContainer');
+
+// ─── Init ─────────────────────────────────────────────────
+loadStampLibrary();
+updateClock();
+setInterval(updateClock, 1000);
+
+// Drag & drop
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') loadPdf(file);
+  else toast('Solo se aceptan archivos PDF', 'error');
+});
+
+// Position pickers
+setupPositionPicker('stampPicker', 'stampMarker', 'stampX', 'stampY', 'stampPosition', false);
+setupPositionPicker('timePicker', 'timeMarker', 'timeX', 'timeY', 'timePosition', true);
+bindCoordInputs();
+$('timeFormat').addEventListener('change', e => { state.timeFormat = e.target.value; });
+
+// ─── Clock ────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  timeDisplay.textContent = formatTime(now, state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+  if ($('timeMarker')) $('timeMarker').textContent = formatTime(now, 'HH:mm');
+}
+
+function formatTime(date, fmt) {
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  const s = String(date.getSeconds()).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const mo = String(date.getMonth() + 1).padStart(2, '0');
+  const y = date.getFullYear();
+  return fmt
+    .replace('HH', h).replace('mm', m).replace('ss', s)
+    .replace('dd', d).replace('MM', mo).replace('yyyy', y);
+}
+
+// ─── Position Picker ──────────────────────────────────────
+function setupPositionPicker(pickerId, markerId, inputX, inputY, posRef, isTime) {
+  const picker = $(pickerId);
+  const marker = $(markerId);
+  if (!picker || !marker) return;
+
+  picker.addEventListener('click', e => {
+    const rect = picker.getBoundingClientRect();
+    const pctX = (e.clientX - rect.left) / rect.width;
+    const pctY = (e.clientY - rect.top) / rect.height;
+    const mmX = pctX * (state.pageWidth / PT_PER_MM) || pctX * 210; // fallback A4 width
+    const mmY = pctY * (state.pageHeight / PT_PER_MM) || pctY * 297;
+    state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'] = { x: Math.round(mmX * 2) / 2, y: Math.round(mmY * 2) / 2 };
+    $(inputX).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].x;
+    $(inputY).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].y;
+    updateMarkerPosition(picker, marker, isTime);
+  });
+
+  // Drag support
+  let dragging = false;
+  marker.style.pointerEvents = 'auto';
+  marker.style.cursor = 'grab';
+  marker.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    dragging = true;
+    marker.style.cursor = 'grabbing';
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect = picker.getBoundingClientRect();
+    const pctX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const pctY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    const mmX = pctX * (state.pageWidth / PT_PER_MM) || pctX * 210;
+    const mmY = pctY * (state.pageHeight / PT_PER_MM) || pctY * 297;
+    state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'] = { x: Math.round(mmX * 2) / 2, y: Math.round(mmY * 2) / 2 };
+    $(inputX).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].x;
+    $(inputY).value = state[posRef === 'stampPosition' ? 'stampPosition' : 'timePosition'].y;
+    updateMarkerPosition(picker, marker, isTime);
+  });
+  document.addEventListener('mouseup', () => {
+    dragging = false;
+    if (marker) marker.style.cursor = 'grab';
+  });
+}
+
+function updateMarkerPosition(picker, marker, isTime) {
+  const pos = isTime ? state.timePosition : state.stampPosition;
+  const pageWmm = state.pageWidth / PT_PER_MM || 210;
+  const pageHmm = state.pageHeight / PT_PER_MM || 297;
+  marker.style.left = (pos.x / pageWmm * 100) + '%';
+  marker.style.top = (pos.y / pageHmm * 100) + '%';
+  if (isTime) {
+    $('timeMarker').textContent = formatTime(new Date(), 'HH:MM');
+  }
+}
+
+function bindCoordInputs() {
+  ['stampX','stampY','stampW','timeX','timeY'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      if (id.startsWith('stamp')) {
+        if (id === 'stampX') state.stampPosition.x = parseFloat(el.value) || 0;
+        if (id === 'stampY') state.stampPosition.y = parseFloat(el.value) || 0;
+        if (id === 'stampW') {
+          state.stampSize.w = parseFloat(el.value) || 25;
+          const stamp = state.stampLibrary.find(s => s.id === state.selectedStampId);
+          const ratio = stamp ? stamp.natH / stamp.natW : 1;
+          state.stampSize.h = state.stampSize.w * ratio;
+          const pw = state.pageWidth / PT_PER_MM || 210;
+          const ph = state.pageHeight / PT_PER_MM || 297;
+          $('stampPicker').style.setProperty('--stamp-h', (state.stampSize.h / ph * 100) + '%');
+        }
+        updateMarkerPosition($('stampPicker'), $('stampMarker'), false);
+        $('stampPicker').style.setProperty('--stamp-w', (state.stampSize.w / (state.pageWidth / PT_PER_MM || 210) * 100) + '%');
+      } else {
+        if (id === 'timeX') state.timePosition.x = parseFloat(el.value) || 0;
+        if (id === 'timeY') state.timePosition.y = parseFloat(el.value) || 0;
+        updateMarkerPosition($('timePicker'), $('timeMarker'), true);
+      }
+    });
+  });
+}
+
+// ─── PDF Handling ─────────────────────────────────────────
+async function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) loadPdf(file);
+}
+
+async function loadPdf(file) {
+  if (file.size > 50 * 1024 * 1024) {
+    toast('El archivo excede 50 MB', 'error');
+    return;
+  }
+
+  setStatus('processing', 'Cargando PDF...');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    state.pdfBytes = new Uint8Array(arrayBuffer);
+    state.pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+    const pages = state.pdfDoc.getPages();
+    state.pageCount = pages.length;
+
+    if (pages.length > 0) {
+      const size = pages[0].getSize();
+      state.pageWidth = size.width;
+      state.pageHeight = size.height;
+
+      // Update picker aspect ratio
+      const ratio = size.width / size.height;
+      $('stampPicker').style.setProperty('--page-ratio', ratio);
+      $('timePicker').style.setProperty('--page-ratio', ratio);
+
+      // Reset marker positions
+      updateAllMarkers();
+    }
+
+    // Update UI
+    uploadZone.style.display = 'none';
+    workspace.classList.add('active');
+    pageCount.textContent = pages.length + ' págs';
+    pageCount.classList.add('visible');
+    fileBadge.querySelector('.name').textContent = file.name;
+    fileBadge.querySelector('.pages').textContent = pages.length + ' página' + (pages.length !== 1 ? 's' : '');
+
+    // Show original PDF preview
+    previewPdfOriginal();
+
+    // Enable buttons if stamp is selected
+    updateApplyButton();
+    btnPreview.disabled = false;
+
+    // Store modified bytes as same as original initially (for preview)
+    state.modifiedPdfBytes = state.pdfBytes;
+
+    setStatus('ready', 'PDF cargado — ' + pages.length + ' páginas');
+    toast('PDF cargado correctamente', 'success');
+
+    // Store settings in localStorage
+    saveSettings();
+  } catch (err) {
+    console.error(err);
+    setStatus('error', 'Error al cargar PDF');
+    toast('Error al procesar el PDF: ' + err.message, 'error');
+  }
+}
+
+function previewPdfOriginal() {
+  const blob = new Blob([state.pdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  previewFrame.src = url;
+  previewContainer.style.display = 'flex';
+}
+
+function updateAllMarkers() {
+  updateMarkerPosition($('stampPicker'), $('stampMarker'), false);
+  updateMarkerPosition($('timePicker'), $('timeMarker'), true);
+  $('stampPicker').style.setProperty('--stamp-w', (state.stampSize.w / (state.pageWidth / PT_PER_MM || 210) * 100) + '%');
+  $('stampPicker').style.setProperty('--stamp-h', (state.stampSize.h / (state.pageHeight / PT_PER_MM || 297) * 100) + '%');
+}
+
+// ─── Apply Stamps ─────────────────────────────────────────
+async function applyStamps() {
+  if (!state.pdfDoc || !state.selectedStampId) {
+    toast('Selecciona un timbre primero', 'error');
+    return;
+  }
+
+  const stamp = state.stampLibrary.find(s => s.id === state.selectedStampId);
+  if (!stamp) {
+    toast('Timbre no encontrado', 'error');
+    return;
+  }
+
+  setStatus('processing', 'Aplicando sellos...');
+  btnApply.disabled = true;
+  btnApply.textContent = '⏳ Procesando...';
+
+  try {
+    // Reload PDF to start fresh
+    const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
+    const pages = pdfDoc.getPages();
+
+    // Convert stamp image from base64 to bytes
+    const stampBytes = base64ToBytes(stamp.dataUrl.split(',')[1]);
+    let stampImage;
+    if (stamp.dataUrl.startsWith('data:image/png')) {
+      stampImage = await pdfDoc.embedPng(stampBytes);
+    } else {
+      stampImage = await pdfDoc.embedJpg(stampBytes);
+    }
+
+    // Embed font for timestamp
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+
+    const now = new Date();
+    const timeStr = formatTime(now, state.timeFormat);
+
+    const stampWpt = state.stampSize.w * PT_PER_MM;
+    const stampHpt = stampWpt * (stamp.natH / stamp.natW);
+    const fontSize = 10;
+
+    for (const page of pages) {
+      const { width, height } = page.getSize();
+
+      // Stamp position: convert mm from top-left to PDF points from bottom-left
+      const stampX = state.stampPosition.x * PT_PER_MM;
+      const stampY = height - (state.stampPosition.y * PT_PER_MM) - stampHpt;
+
+      page.drawImage(stampImage, {
+        x: stampX,
+        y: stampY,
+        width: stampWpt,
+        height: stampHpt,
+        opacity: 0.9,
+      });
+
+      // Timestamp position
+      const timeX = state.timePosition.x * PT_PER_MM;
+      const timeY = height - (state.timePosition.y * PT_PER_MM) - fontSize;
+
+      page.drawText(timeStr, {
+        x: timeX,
+        y: timeY,
+        size: fontSize,
+        font: font,
+        color: PDFLib.rgb(0, 0, 0),
+      });
+    }
+
+    state.modifiedPdfBytes = await pdfDoc.save();
+    const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    previewFrame.src = url;
+    previewContainer.style.display = 'flex';
+
+    btnDownload.disabled = false;
+    btnPrint.disabled = false;
+    setStatus('ready', 'Sellos aplicados — listo para descargar');
+    toast('¡Sellos aplicados a ' + pages.length + ' páginas!', 'success');
+  } catch (err) {
+    console.error(err);
+    toast('Error al aplicar sellos: ' + err.message, 'error');
+    setStatus('error', 'Error');
+  } finally {
+    btnApply.disabled = !state.selectedStampId;
+    btnApply.textContent = '✦ Aplicar Sellos a Todas las Páginas';
+  }
+}
+
+function previewPdf() {
+  if (!state.modifiedPdfBytes) {
+    toast('Aplica los sellos primero', 'info');
+    return;
+  }
+  const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
+  previewFrame.src = URL.createObjectURL(blob);
+  previewContainer.style.display = 'flex';
+  previewContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+function downloadPdf() {
+  if (!state.modifiedPdfBytes) return;
+  const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const now = new Date();
+  const ts = formatTime(now, 'dd-MM-yyyy_HH-mm');
+  a.download = 'guia_sellada_' + ts + '.pdf';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('PDF descargado', 'success');
+}
+
+function printPdf() {
+  if (!state.modifiedPdfBytes) return;
+  const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, '_blank');
+  if (w) {
+    w.addEventListener('load', () => {
+      w.print();
+    });
+  }
+}
+
+// ─── Stamp Library ────────────────────────────────────────
+function loadStampLibrary() {
+  try {
+    const data = localStorage.getItem('selloguia_stamps');
+    state.stampLibrary = data ? JSON.parse(data) : [];
+    renderStampList();
+  } catch (e) {
+    state.stampLibrary = [];
+  }
+}
+
+function saveStampLibrary() {
+  localStorage.setItem('selloguia_stamps', JSON.stringify(state.stampLibrary));
+}
+
+function loadSettings() {
+  try {
+    const s = localStorage.getItem('selloguia_settings');
+    if (s) {
+      const parsed = JSON.parse(s);
+      if (parsed.stampPosition) state.stampPosition = parsed.stampPosition;
+      if (parsed.timePosition) state.timePosition = parsed.timePosition;
+      if (parsed.stampSize) state.stampSize = parsed.stampSize;
+      if (parsed.timeFormat) state.timeFormat = parsed.timeFormat;
+    }
+  } catch(e) {}
+}
+
+function saveSettings() {
+  localStorage.setItem('selloguia_settings', JSON.stringify({
+    stampPosition: state.stampPosition,
+    timePosition: state.timePosition,
+    stampSize: state.stampSize,
+    timeFormat: state.timeFormat,
+  }));
+}
+
+function renderStampList() {
+  if (state.stampLibrary.length === 0) {
+    stampList.innerHTML = `<div class="sidebar-empty"><div class="icon">🖼️</div><p>No hay timbres aún.<br>Agrega el primero con el botón +</p></div>`;
+    return;
+  }
+
+  stampList.innerHTML = state.stampLibrary.map(s => `
+    <div class="stamp-item ${s.id === state.selectedStampId ? 'selected' : ''}" onclick="selectStamp('${s.id}')">
+      <div class="stamp-thumb">
+        ${s.dataUrl ? `<img src="${s.dataUrl}" alt="${s.name}">` : '<span class="placeholder">👤</span>'}
+      </div>
+      <div class="stamp-info">
+        <div class="stamp-name">${escapeHtml(s.name)}</div>
+        <div class="stamp-meta">${s.addedAt || ''}</div>
+      </div>
+      <button class="stamp-delete" onclick="event.stopPropagation();removeStamp('${s.id}')" title="Eliminar">✕</button>
+    </div>
+  `).join('');
+
+  updateApplyButton();
+}
+
+function selectStamp(id) {
+  state.selectedStampId = id;
+  const stamp = state.stampLibrary.find(s => s.id === id);
+  if (stamp) {
+    state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
+    if (state.pageWidth > 0) updateAllMarkers();
+  }
+  renderStampList();
+  updateApplyButton();
+  saveSettings();
+}
+
+function removeStamp(id) {
+  if (!confirm('¿Eliminar este timbre?')) return;
+  state.stampLibrary = state.stampLibrary.filter(s => s.id !== id);
+  if (state.selectedStampId === id) state.selectedStampId = null;
+  saveStampLibrary();
+  renderStampList();
+}
+
+function openAddStampModal() {
+  $('stampModal').style.display = 'flex';
+  $('stampNameInput').value = '';
+  $('stampFileInput').value = '';
+  $('stampNameInput').focus();
+}
+
+function closeAddStampModal() {
+  $('stampModal').style.display = 'none';
+}
+
+function saveNewStamp() {
+  const name = $('stampNameInput').value.trim();
+  const file = $('stampFileInput').files[0];
+
+  if (!name) { toast('Ingresa un nombre', 'error'); return; }
+  if (!file) { toast('Selecciona una imagen', 'error'); return; }
+  if (file.size > 2 * 1024 * 1024) { toast('La imagen no debe superar 2 MB', 'error'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function() {
+    const img = new Image();
+    img.onload = function() {
+      // Resize if too large
+      let dataUrl = reader.result;
+      if (img.width > 300 || img.height > 300) {
+        const scale = Math.min(300 / img.width, 300 / img.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        dataUrl = canvas.toDataURL('image/png');
+      }
+
+      const now = new Date();
+      const stamp = {
+        id: 's_' + Date.now(),
+        name: name,
+        dataUrl: dataUrl,
+        natW: img.width,
+        natH: img.height,
+        addedAt: formatTime(now, 'dd/MM/yyyy'),
+      };
+
+      state.stampLibrary.push(stamp);
+      state.selectedStampId = stamp.id;
+      saveStampLibrary();
+      renderStampList();
+      closeAddStampModal();
+      toast('Timbre de ' + name + ' agregado', 'success');
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateApplyButton() {
+  btnApply.disabled = !(state.pdfDoc && state.selectedStampId);
+}
+
+// ─── Reset ────────────────────────────────────────────────
+function resetAll() {
+  state.pdfBytes = null;
+  state.modifiedPdfBytes = null;
+  state.pdfDoc = null;
+  state.pageCount = 0;
+  uploadZone.style.display = '';
+  workspace.classList.remove('active');
+  pageCount.classList.remove('visible');
+  previewContainer.style.display = 'none';
+  previewFrame.src = '';
+  btnApply.disabled = true;
+  btnPreview.disabled = true;
+  btnDownload.disabled = true;
+  btnPrint.disabled = true;
+  $('fileInput').value = '';
+  setStatus('idle', 'Listo');
+}
+
+// ─── Utilities ────────────────────────────────────────────
+function setStatus(state, text) {
+  $('statusText').textContent = text;
+  $('statusDot').className = 'status-dot ' + state;
+}
+
+function toast(message, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  el.innerHTML = `<span>${icons[type] || ''}</span> ${message}`;
+  toastContainer.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(40px)';
+    el.style.transition = 'all 200ms ease';
+    setTimeout(() => el.remove(), 200);
+  }, 3000);
+}
+
+function base64ToBytes(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if (!btnApply.disabled) applyStamps();
+    else if (!btnDownload.disabled) downloadPdf();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+    e.preventDefault();
+    if (!btnPrint.disabled) printPdf();
+  }
+});
+
+// ─── Initialize picker sizes on load ──────────────────────
+loadSettings();
+if (state.timeFormat) $('timeFormat').value = state.timeFormat;
+if (state.stampPosition) { $('stampX').value = state.stampPosition.x; $('stampY').value = state.stampPosition.y; }
+if (state.timePosition) { $('timeX').value = state.timePosition.x; $('timeY').value = state.timePosition.y; }
+if (state.stampSize) { $('stampW').value = state.stampSize.w; }
+</script>
+</body>
+</html>
