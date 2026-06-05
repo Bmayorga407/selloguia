@@ -535,6 +535,40 @@ body::before{
   padding:14px 22px;
   border-radius:14px;
 }
+.rotation-control{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface2);
+}
+.rotation-label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:0.78rem;
+  color:var(--text2);
+  font-weight:700;
+}
+.rotation-label output{
+  font-family:'DM Mono',monospace;
+  color:var(--text3);
+  font-weight:500;
+}
+.rotation-control input[type="range"]{
+  width:100%;
+  accent-color:var(--red);
+  cursor:pointer;
+}
+.rotation-hint{
+  color:var(--text3);
+  font-size:0.72rem;
+  line-height:1.35;
+}
 .action-bar.ready-to-print .btn-main{
   background:#118b58;
   color:#fff;
@@ -783,6 +817,7 @@ body::before{
     gap:8px;
   }
   .side-history{display:none}
+  .rotation-control{max-width:220px;min-width:180px;padding:8px}
   .action-summary{min-width:220px;width:auto}
   .btn-main{width:auto;min-width:260px}
 }
@@ -794,7 +829,7 @@ body::before{
   .canvas-wrapper{width:min(100%,430px)}
   .action-bar{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:none}
   .action-bar{align-items:stretch}
-  .action-summary,.btn-main{width:100%}
+  .action-summary,.btn-main,.rotation-control{width:100%}
 }
 @media(max-width:640px){
   .header{padding:0 16px}
@@ -877,6 +912,14 @@ body::before{
           </div>
         </div>
         <button class="btn btn-primary btn-main" id="btnApply" onclick="handlePrimaryAction()" disabled>✦ Aplicar sello</button>
+        <div class="rotation-control">
+          <label class="rotation-label" for="stampRotationInput">
+            Inclinación del timbre
+            <output id="stampRotationValue" for="stampRotationInput">0°</output>
+          </label>
+          <input id="stampRotationInput" type="range" min="-15" max="15" step="1" value="0" oninput="updateStampRotation(this.value)">
+          <div class="rotation-hint">Ajusta el ángulo cuando quieras antes de imprimir.</div>
+        </div>
         <div class="side-history">
           <h3>Últimos sellados</h3>
           <div class="side-history-list" id="sideHistoryList">
@@ -947,6 +990,7 @@ const state = {
   selectedStampId: null,
   stampPosition: { x: 2, y: 232 },
   stampSize: { w: 30, h: 30 },
+  stampRotation: 0,
   timePosition: { x: 74, y: 236 },
   timeFormat: 'HH:mm',
   readyToPrint: false,
@@ -974,6 +1018,8 @@ const timeDisplay = $('timeDisplay');
 const actionIcon = $('actionIcon');
 const actionTitle = $('actionTitle');
 const actionHint = $('actionHint');
+const stampRotationInput = $('stampRotationInput');
+const stampRotationValue = $('stampRotationValue');
 const toastContainer = $('toastContainer');
 const historyList = $('historyList');
 const sideHistoryList = $('sideHistoryList');
@@ -1021,7 +1067,8 @@ markerCanvas.addEventListener('mousedown', e => {
   const hitPad = 12;
   // Check stamp hit area
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
-  if (sx > scx - hitPad && sx < scx + sw + hitPad && sy > scy - hitPad && sy < scy + sh + hitPad) {
+  const stampHit = rotatedStampHitBox(scx, scy, sw, sh);
+  if (sx > stampHit.x - hitPad && sx < stampHit.x + stampHit.w + hitPad && sy > stampHit.y - hitPad && sy < stampHit.y + stampHit.h + hitPad) {
     draggingMarker = 'stamp';
     dragOffset = { x: sx - scx, y: sy - scy };
     markerCanvas.style.cursor = 'grabbing';
@@ -1116,6 +1163,22 @@ function markerSize(which) {
   return { x: size.w / 2, y: size.h / 2 };
 }
 
+function stampRotationRadians() {
+  return (state.stampRotation || 0) * Math.PI / 180;
+}
+
+function rotatedStampHitBox(x, y, w, h) {
+  const angle = Math.abs(stampRotationRadians());
+  const rotatedW = Math.abs(w * Math.cos(angle)) + Math.abs(h * Math.sin(angle));
+  const rotatedH = Math.abs(w * Math.sin(angle)) + Math.abs(h * Math.cos(angle));
+  return {
+    x: x + w / 2 - rotatedW / 2,
+    y: y + h / 2 - rotatedH / 2,
+    w: rotatedW,
+    h: rotatedH,
+  };
+}
+
 function markPdfNeedsApply() {
   if (!state.pdfDoc) return;
   state.readyToPrint = false;
@@ -1151,7 +1214,17 @@ function setMarkerFromCanvas(cx, cy, which) {
 }
 
 function syncInputsFromState() {
+  if (stampRotationInput) stampRotationInput.value = state.stampRotation || 0;
+  if (stampRotationValue) stampRotationValue.textContent = (state.stampRotation || 0) + '°';
   updateApplyButton();
+}
+
+function updateStampRotation(value) {
+  state.stampRotation = Math.max(-15, Math.min(15, Number(value) || 0));
+  if (stampRotationValue) stampRotationValue.textContent = state.stampRotation + '°';
+  markPdfNeedsApply();
+  saveSettings();
+  if (pageCanvas.width) drawMarkers();
 }
 
 // ─── Page rendering ───────────────────────────────────────
@@ -1205,15 +1278,17 @@ function drawMarkers() {
   const stamp = selectedStamp();
   const stampImage = getStampPreviewImage(stamp);
   mctx.save();
+  mctx.translate(scx + sw / 2, scy + sh / 2);
+  mctx.rotate(stampRotationRadians());
   if (stampImage && stampImage.complete && stampImage.naturalWidth) {
     mctx.globalAlpha = 0.92;
-    mctx.drawImage(stampImage, scx, scy, sw, sh);
+    mctx.drawImage(stampImage, -sw / 2, -sh / 2, sw, sh);
     mctx.globalAlpha = 1;
   } else {
     mctx.fillStyle = 'rgba(232,17,27,0.08)';
-    mctx.fillRect(scx, scy, sw, sh);
+    mctx.fillRect(-sw / 2, -sh / 2, sw, sh);
     mctx.fillStyle = '#e8111b'; mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-    mctx.textAlign = 'left'; mctx.fillText('TIMBRE', scx, Math.max(12, scy - 7));
+    mctx.textAlign = 'center'; mctx.fillText('TIMBRE', 0, -sh / 2 - 7);
   }
   mctx.restore();
 
@@ -1350,12 +1425,29 @@ async function applyStamps() {
 
     const stampWpt = state.stampSize.w * PT_PER_MM;
     const stampHpt = stampWpt * (stamp.natH / stamp.natW);
+    const rotation = state.stampRotation || 0;
 
     for (const page of pages) {
       const { height } = page.getSize();
       const sx = state.stampPosition.x * PT_PER_MM;
       const sy = height - (state.stampPosition.y * PT_PER_MM) - stampHpt;
-      page.drawImage(stampImage, { x: sx, y: sy, width: stampWpt, height: stampHpt, opacity: 0.9 });
+      if (rotation) {
+        const centerX = sx + stampWpt / 2;
+        const centerY = sy + stampHpt / 2;
+        const angle = -rotation * Math.PI / 180;
+        const rotatedX = centerX - (stampWpt * Math.cos(angle) - stampHpt * Math.sin(angle)) / 2;
+        const rotatedY = centerY - (stampWpt * Math.sin(angle) + stampHpt * Math.cos(angle)) / 2;
+        page.drawImage(stampImage, {
+          x: rotatedX,
+          y: rotatedY,
+          width: stampWpt,
+          height: stampHpt,
+          opacity: 0.9,
+          rotate: PDFLib.degrees(-rotation),
+        });
+      } else {
+        page.drawImage(stampImage, { x: sx, y: sy, width: stampWpt, height: stampHpt, opacity: 0.9 });
+      }
 
       const tx = state.timePosition.x * PT_PER_MM;
       const ty = height - (state.timePosition.y * PT_PER_MM) - fontSize;
@@ -1527,6 +1619,7 @@ function loadSettings() {
     if (s.stampPosition) state.stampPosition = s.stampPosition;
     if (s.timePosition) state.timePosition = s.timePosition;
     if (s.stampSize) state.stampSize = s.stampSize;
+    if (Number.isFinite(s.stampRotation)) state.stampRotation = s.stampRotation;
     if (s.timeFormat) state.timeFormat = s.timeFormat;
   } catch {}
 }
@@ -1534,7 +1627,7 @@ function saveSettings() {
   localStorage.setItem('selloguia_settings', JSON.stringify({
     version: SETTINGS_VERSION,
     stampPosition: state.stampPosition, timePosition: state.timePosition,
-    stampSize: state.stampSize, timeFormat: state.timeFormat,
+    stampSize: state.stampSize, stampRotation: state.stampRotation, timeFormat: state.timeFormat,
   }));
 }
 
@@ -1563,6 +1656,7 @@ function selectStamp(id) {
   if (stamp) {
     state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
     clampMarkerPositions();
+    syncInputsFromState();
     markPdfNeedsApply();
     if (pageCanvas.width) drawMarkers();
   }
