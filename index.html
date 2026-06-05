@@ -1472,6 +1472,15 @@ function toggleMarker(which) {
   if (pageCanvas.width) drawMarkers();
 }
 
+function updateStampRotation(value) {
+  if (!state.stampEnabled) return;
+  state.stampRotation = Math.max(-15, Math.min(15, Number(value) || 0));
+  if (stampRotationValue) stampRotationValue.textContent = state.stampRotation + '°';
+  markPdfNeedsApply();
+  saveSettings();
+  if (pageCanvas.width) drawMarkers();
+}
+
 function updateStampSize(value) {
   if (!state.stampEnabled) return;
   const v = Math.max(8, Math.min(70, Number(value) || 30));
