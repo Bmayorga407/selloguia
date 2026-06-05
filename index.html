@@ -316,12 +316,13 @@ body::before{
 }
 
 /* Workspace */
-.workspace{display:none;gap:14px;min-height:0}
+.workspace{display:none;gap:12px;min-height:0}
 .workspace.active{
   display:grid;
   grid-template-columns:minmax(0,1fr);
   grid-template-rows:auto minmax(0,1fr) auto;
   align-items:start;
+  height:100%;
 }
 .workspace-toolbar{
   grid-column:1 / -1;
@@ -347,20 +348,19 @@ body::before{
 .file-badge .close:hover{color:var(--red)}
 
 /* Editor */
-.editor-section{min-height:0}
+.editor-section{min-height:0;overflow:hidden}
 .editor-card{
-  background:rgba(18,20,26,0.92);
+  background:rgba(18,20,26,0.78);
   border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:16px;
-  display:grid;
-  grid-template-columns:minmax(300px,1fr) 300px;
-  grid-template-rows:auto minmax(0,1fr);
-  gap:14px;
+  border-radius:18px;
+  padding:18px 18px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
   min-height:0;
+  box-shadow:0 20px 80px rgba(0,0,0,0.24);
 }
 .editor-header{
-  grid-column:1 / -1;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -373,38 +373,21 @@ body::before{
   color:var(--text2);
   letter-spacing:0;
 }
-.mode-toggle{display:flex;gap:4px;background:var(--surface2);border-radius:8px;padding:3px}
-.mode-btn{
-  padding:7px 12px;
-  border:none;
-  border-radius:6px;
-  font-size:0.78rem;
-  font-weight:600;
-  font-family:inherit;
-  cursor:pointer;
-  background:transparent;
-  color:var(--text3);
-  transition:all var(--transition);
-  white-space:nowrap;
-}
-.mode-btn:hover{color:var(--text2)}
-.mode-btn.active{background:var(--red);color:#fff;box-shadow:0 1px 4px var(--red-glow)}
 
 .canvas-wrapper{
   position:relative;
-  width:min(100%,430px);
-  max-height:58vh;
+  width:min(100%,510px);
   aspect-ratio:8.5 / 11;
-  border-radius:8px;
+  border-radius:14px;
   overflow:hidden;
   border:1px solid var(--border-light);
-  background:#e9edf3;
-  box-shadow:0 2px 24px rgba(0,0,0,0.4);
+  background:#eef1f6;
+  box-shadow:0 22px 70px rgba(0,0,0,0.46);
   user-select:none;
   line-height:0;
-  align-self:start;
+  align-self:center;
   justify-self:center;
-  padding:10px;
+  padding:12px;
 }
 .canvas-wrapper canvas{
   display:block;
@@ -415,63 +398,15 @@ body::before{
 }
 .canvas-wrapper canvas:last-child{
   position:absolute;
-  top:10px;
-  left:10px;
-  width:calc(100% - 20px);
+  top:12px;
+  left:12px;
+  width:calc(100% - 24px);
   height:auto;
   box-shadow:none;
 }
 
-#markerCanvas{cursor:crosshair}
-
-/* Controls */
-.controls-row{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:12px;
-  align-self:start;
-}
-.control-group{
-  background:rgba(25,28,36,0.86);
-  border:1px solid var(--border);
-  border-radius:var(--radius-sm);
-  padding:14px;
-}
-.control-group-label{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-size:0.76rem;
-  font-weight:600;
-  color:var(--text2);
-  margin-bottom:10px;
-}
-.control-group-label .dot{width:10px;height:10px;border-radius:3px}
-.dot-stamp{background:var(--red)}
-.dot-time{background:#3b82f6}
-
-.coord-row{display:flex;gap:10px}
-.coord-field{flex:1;display:flex;flex-direction:column;gap:4px}
-.coord-field label{
-  font-size:0.68rem;
-  color:var(--text3);
-  text-transform:uppercase;
-  letter-spacing:0;
-  font-weight:600;
-}
-.coord-field input{
-  background:var(--surface2);
-  border:1px solid var(--border);
-  border-radius:6px;
-  padding:8px 10px;
-  color:var(--text);
-  font-family:'DM Mono',monospace;
-  font-size:0.82rem;
-  width:100%;
-  transition:border-color var(--transition);
-}
-.coord-field input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px var(--red-glow)}
-.size-field input{max-width:80px}
+#markerCanvas{cursor:grab}
+#markerCanvas:active{cursor:grabbing}
 
 /* Live time */
 .live-time{
@@ -511,12 +446,46 @@ body::before{
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid transparent}
 .btn-ghost:hover{background:var(--surface2);border-color:var(--border);color:var(--text)}
 .btn-sm{padding:6px 12px;font-size:0.78rem;border-radius:6px}
-.btn-group{
+.action-bar{
   grid-column:1 / -1;
   display:flex;
+  align-items:center;
+  justify-content:space-between;
   gap:8px;
   flex-wrap:wrap;
+  background:rgba(25,28,36,0.9);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:14px;
+  position:relative;
+  z-index:10;
+  box-shadow:0 12px 44px rgba(0,0,0,0.22);
+}
+.action-summary{
+  display:flex;
   align-items:center;
+  gap:12px;
+  min-width:220px;
+}
+.action-summary .status-icon{
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--surface3);
+  border:1px solid var(--border-light);
+}
+.action-copy{display:flex;flex-direction:column;gap:3px}
+.action-copy strong{font-size:0.9rem;font-weight:700}
+.action-copy span{font-size:0.76rem;color:var(--text3)}
+.btn-main{
+  min-width:260px;
+  justify-content:center;
+  font-size:0.95rem;
+  padding:14px 22px;
+  border-radius:12px;
 }
 
 /* Settings */
@@ -551,7 +520,7 @@ body::before{
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* Toast */
-.toast-container{position:fixed;bottom:24px;right:24px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.toast-container{position:fixed;top:72px;right:24px;z-index:1000;display:flex;flex-direction:column;gap:8px}
 .toast{
   background:var(--surface3);
   border:1px solid var(--border-light);
@@ -628,22 +597,23 @@ body::before{
 @media(max-width:1080px){
   .workspace.active{grid-template-columns:1fr}
   .editor-card{grid-template-columns:1fr}
-  .controls-row{grid-template-columns:1fr 1fr}
+  .canvas-wrapper{width:min(100%,480px)}
 }
 @media(max-width:860px){
   .app-layout{height:auto;min-height:calc(100vh - 82px)}
   .app-layout{grid-template-columns:1fr}
   .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:200px}
-  .controls-row{grid-template-columns:1fr}
   .main-content{overflow:visible}
-  .canvas-wrapper{max-height:56vh}
+  .canvas-wrapper{width:min(100%,420px)}
+  .action-bar{align-items:stretch}
+  .action-summary,.btn-main{width:100%}
 }
 @media(max-width:640px){
   .header{padding:0 16px}
   .main-content{padding:16px}
-  .btn-group{flex-direction:column}
+  .action-bar{flex-direction:column}
   .btn{justify-content:center}
-  .toast-container{left:12px;right:12px;bottom:12px}
+  .toast-container{top:auto;left:12px;right:12px;bottom:12px}
   .toast{max-width:none;padding:10px 12px}
 }
 </style>
@@ -696,50 +666,25 @@ body::before{
       <div class="editor-section">
         <div class="editor-card">
           <div class="editor-header">
-            <h3>Haz clic sobre la guía para posicionar cada elemento</h3>
-            <button class="btn btn-secondary btn-sm" onclick="applyGuidePreset()">Ajustar a guía Embonor</button>
-            <div class="mode-toggle" id="modeToggle">
-              <button class="mode-btn active" data-mode="stamp">📌 Posicionar Timbre</button>
-              <button class="mode-btn" data-mode="time">🕐 Posicionar Hora</button>
-            </div>
+            <h3>Mueve el timbre o la hora directo sobre la guía</h3>
+            <button class="btn btn-secondary btn-sm" onclick="applyGuidePreset()">Restablecer posición</button>
           </div>
           <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="pageCanvas"></canvas>
             <canvas id="markerCanvas"></canvas>
           </div>
-          <div class="controls-row">
-            <div class="control-group">
-              <div class="control-group-label"><span class="dot dot-stamp"></span> Timbre</div>
-              <div class="coord-row">
-                <div class="coord-field"><label>X mm</label><input type="number" id="stampX" value="2" step="0.5" min="0"></div>
-                <div class="coord-field"><label>Y mm</label><input type="number" id="stampY" value="232" step="0.5" min="0"></div>
-                <div class="coord-field size-field"><label>Ancho mm</label><input type="number" id="stampW" value="30" step="0.5" min="5"></div>
-              </div>
-            </div>
-            <div class="control-group">
-              <div class="control-group-label"><span class="dot dot-time"></span> Hora</div>
-              <div class="coord-row">
-                <div class="coord-field"><label>X mm</label><input type="number" id="timeX" value="74" step="0.5" min="0"></div>
-                <div class="coord-field"><label>Y mm</label><input type="number" id="timeY" value="236" step="0.5" min="0"></div>
-              </div>
-              <div class="settings-row" style="margin-top:8px">
-                <label>Formato:</label>
-                <select id="timeFormat">
-                  <option value="HH:mm">HH:mm (14:30)</option>
-                  <option value="HH:mm:ss">HH:mm:ss (14:30:25)</option>
-                  <option value="dd/MM/yyyy HH:mm">dd/MM/yyyy HH:mm</option>
-                  <option value="dd/MM/yyyy HH:mm:ss">dd/MM/yyyy HH:mm:ss</option>
-                </select>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <div class="btn-group">
-        <button class="btn btn-primary" id="btnApply" onclick="applyStamps()" disabled>✦ Aplicar Sellos a Todas las Páginas</button>
-        <button class="btn btn-secondary" id="btnDownload" onclick="downloadPdf()" disabled>⬇ Descargar PDF</button>
-        <button class="btn btn-ghost" id="btnPrint" onclick="printPdf()" disabled>🖨 Imprimir</button>
+      <div class="action-bar">
+        <div class="action-summary">
+          <span class="status-icon" id="actionIcon">📄</span>
+          <div class="action-copy">
+            <strong id="actionTitle">PDF cargado</strong>
+            <span id="actionHint">Revisa la posición y aplica el sello.</span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-main" id="btnApply" onclick="handlePrimaryAction()" disabled>✦ Aplicar sello</button>
       </div>
     </div>
   </main>
@@ -788,6 +733,7 @@ const state = {
   stampSize: { w: 30, h: 30 },
   timePosition: { x: 74, y: 236 },
   timeFormat: 'HH:mm',
+  readyToPrint: false,
   _loading: false,
 };
 
@@ -811,9 +757,10 @@ const stampList = $('stampList');
 const pageCount = $('pageCount');
 const fileBadge = $('fileBadge');
 const btnApply = $('btnApply');
-const btnDownload = $('btnDownload');
-const btnPrint = $('btnPrint');
 const timeDisplay = $('timeDisplay');
+const actionIcon = $('actionIcon');
+const actionTitle = $('actionTitle');
+const actionHint = $('actionHint');
 const toastContainer = $('toastContainer');
 const pageCanvas = $('pageCanvas');
 const markerCanvas = $('markerCanvas');
@@ -822,7 +769,6 @@ const pctx = pageCanvas.getContext('2d');
 const mctx = markerCanvas.getContext('2d');
 
 // ─── Canvas editor state ─────────────────────────────────
-let activeMode = 'stamp';
 let draggingMarker = null;
 let stampPreviewImage = null;
 let stampPreviewSource = '';
@@ -835,7 +781,6 @@ loadStampLibrary();
 loadSettings();
 updateClock();
 setInterval(updateClock, 1000);
-if (state.timeFormat) $('timeFormat').value = state.timeFormat;
 syncInputsFromState();
 
 // ─── Drag & drop ──────────────────────────────────────────
@@ -848,17 +793,6 @@ uploadZone.addEventListener('drop', e => {
   if (file && file.type === 'application/pdf') loadPdf(file);
   else toast('Solo se aceptan archivos PDF', 'error');
 });
-
-// ─── Mode toggle ──────────────────────────────────────────
-$('modeToggle').addEventListener('click', e => {
-  const btn = e.target.closest('.mode-btn');
-  if (!btn) return;
-  activeMode = btn.dataset.mode;
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-});
-
-$('timeFormat').addEventListener('change', e => { state.timeFormat = e.target.value; drawMarkers(); });
 
 // ─── Canvas interaction ───────────────────────────────────
 markerCanvas.addEventListener('mousedown', e => {
@@ -879,8 +813,11 @@ markerCanvas.addEventListener('mousedown', e => {
   if (sx > tcx - hitPad && sx < tcx + timeSize.w + hitPad && sy > tcy - hitPad && sy < tcy + timeSize.h + hitPad) {
     draggingMarker = 'time'; markerCanvas.style.cursor = 'grabbing'; e.preventDefault(); return;
   }
-  // Place active marker
-  setMarkerFromCanvas(sx, sy, activeMode);
+  // Place the nearest visible marker. This keeps the UI direct, without technical mode buttons.
+  const stampDistance = Math.hypot(sx - (scx + sw / 2), sy - (scy + sh / 2));
+  const timeDistance = Math.hypot(sx - (tcx + timeSize.w / 2), sy - (tcy + timeSize.h / 2));
+  draggingMarker = stampDistance <= timeDistance ? 'stamp' : 'time';
+  setMarkerFromCanvas(sx, sy, draggingMarker);
 });
 
 document.addEventListener('mousemove', e => {
@@ -893,7 +830,7 @@ document.addEventListener('mousemove', e => {
 
 document.addEventListener('mouseup', () => {
   draggingMarker = null;
-  markerCanvas.style.cursor = 'crosshair';
+  markerCanvas.style.cursor = 'grab';
 });
 
 markerCanvas.addEventListener('touchstart', e => {
@@ -901,7 +838,8 @@ markerCanvas.addEventListener('touchstart', e => {
   const rect = markerCanvas.getBoundingClientRect();
   const sx = (e.touches[0].clientX - rect.left) / rect.width * pageCanvas.width;
   const sy = (e.touches[0].clientY - rect.top) / rect.height * pageCanvas.height;
-  setMarkerFromCanvas(sx, sy, activeMode);
+  draggingMarker = nearestMarker(sx, sy);
+  setMarkerFromCanvas(sx, sy, draggingMarker);
   e.preventDefault();
 }, { passive: false });
 
@@ -935,6 +873,22 @@ function getStampPreviewImage(stamp) {
   return stampPreviewImage;
 }
 
+function nearestMarker(cx, cy) {
+  const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
+  const tcx = timeCanvasX(), tcy = timeCanvasY();
+  const timeSize = timeMarkerSize();
+  const stampDistance = Math.hypot(cx - (scx + sw / 2), cy - (scy + sh / 2));
+  const timeDistance = Math.hypot(cx - (tcx + timeSize.w / 2), cy - (tcy + timeSize.h / 2));
+  return stampDistance <= timeDistance ? 'stamp' : 'time';
+}
+
+function markPdfNeedsApply() {
+  if (!state.pdfDoc) return;
+  state.readyToPrint = false;
+  state.modifiedPdfBytes = copyBytes(state.pdfBytes);
+  updateApplyButton();
+}
+
 function setMarkerFromCanvas(cx, cy, which) {
   const mmX = cx / pageCanvas.width * (state.pageWidth / PT_PER_MM);
   const mmY = cy / pageCanvas.height * (state.pageHeight / PT_PER_MM);
@@ -942,37 +896,15 @@ function setMarkerFromCanvas(cx, cy, which) {
   const vy = Math.max(0, Math.round(mmY * 2) / 2);
   if (which === 'stamp') {
     state.stampPosition = { x: vx, y: vy };
-    $('stampX').value = vx; $('stampY').value = vy;
   } else {
     state.timePosition = { x: vx, y: vy };
-    $('timeX').value = vx; $('timeY').value = vy;
   }
+  markPdfNeedsApply();
   drawMarkers();
 }
 
-// ─── Input sync ───────────────────────────────────────────
-['stampX','stampY','stampW','timeX','timeY'].forEach(id => {
-  const el = $(id); if (!el) return;
-  el.addEventListener('input', () => {
-    if (id === 'stampX') state.stampPosition.x = parseFloat(el.value) || 0;
-    if (id === 'stampY') state.stampPosition.y = parseFloat(el.value) || 0;
-    if (id === 'stampW') {
-      state.stampSize.w = parseFloat(el.value) || 25;
-      const s = state.stampLibrary.find(s => s.id === state.selectedStampId);
-      state.stampSize.h = state.stampSize.w * (s ? s.natH / s.natW : 1);
-    }
-    if (id === 'timeX') state.timePosition.x = parseFloat(el.value) || 0;
-    if (id === 'timeY') state.timePosition.y = parseFloat(el.value) || 0;
-    drawMarkers();
-  });
-});
-
 function syncInputsFromState() {
-  $('stampX').value = state.stampPosition.x;
-  $('stampY').value = state.stampPosition.y;
-  $('stampW').value = state.stampSize.w;
-  $('timeX').value = state.timePosition.x;
-  $('timeY').value = state.timePosition.y;
+  updateApplyButton();
 }
 
 function applyGuidePreset() {
@@ -980,11 +912,11 @@ function applyGuidePreset() {
   state.stampSize = { ...GUIDE_PRESET.stampSize };
   state.timePosition = { ...GUIDE_PRESET.timePosition };
   state.timeFormat = GUIDE_PRESET.timeFormat;
-  $('timeFormat').value = state.timeFormat;
   syncInputsFromState();
+  markPdfNeedsApply();
   drawMarkers();
   saveSettings();
-  toast('Posición ajustada para guía Embonor', 'success');
+  toast('Posición restablecida', 'success');
 }
 
 // ─── Page rendering ───────────────────────────────────────
@@ -1003,8 +935,8 @@ async function renderPageToCanvas() {
     const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(state.pdfBytes) }).promise;
     const page = await pdfDoc.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
-    const maxPreviewHeight = Math.min(window.innerHeight * 0.55, 560);
-    const scale = Math.min(Math.min(w, 900) / viewport.width, maxPreviewHeight / viewport.height);
+    const maxPreviewHeight = Math.min(window.innerHeight * 0.58, 620);
+    const scale = Math.min(Math.min(w, 980) / viewport.width, maxPreviewHeight / viewport.height);
     const sv = page.getViewport({ scale });
 
     pageCanvas.width = sv.width;
@@ -1150,6 +1082,7 @@ async function loadPdf(file) {
 
     updateApplyButton();
     state.modifiedPdfBytes = copyBytes(state.pdfBytes);
+    state.readyToPrint = false;
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' páginas');
     toast('PDF cargado correctamente', 'success');
@@ -1167,6 +1100,11 @@ async function loadPdf(file) {
 }
 
 // ─── Apply Stamps ─────────────────────────────────────────
+function handlePrimaryAction() {
+  if (state.readyToPrint) printPdf();
+  else applyStamps();
+}
+
 async function applyStamps() {
   if (!state.pdfDoc || !state.selectedStampId) {
     toast('Selecciona un timbre primero', 'error');
@@ -1206,30 +1144,17 @@ async function applyStamps() {
     }
 
     state.modifiedPdfBytes = await pdfDoc.save();
-    btnDownload.disabled = false;
-    btnPrint.disabled = false;
-    setStatus('ready', 'Sellos aplicados — listo para descargar');
+    state.readyToPrint = true;
+    updateApplyButton();
+    setStatus('ready', 'Sellos aplicados — listo para imprimir');
     toast('¡Sellos aplicados a ' + pages.length + ' páginas!', 'success');
   } catch (err) {
     console.error(err);
     toast('Error al aplicar sellos: ' + err.message, 'error');
     setStatus('error', 'Error');
   } finally {
-    btnApply.disabled = !state.selectedStampId;
-    btnApply.textContent = '✦ Aplicar Sellos a Todas las Páginas';
+    updateApplyButton();
   }
-}
-
-function downloadPdf() {
-  if (!state.modifiedPdfBytes) return;
-  const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'guia_sellada_' + formatTime(new Date(), 'dd-MM-yyyy_HH-mm') + '.pdf';
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('PDF descargado', 'success');
 }
 
 function printPdf() {
@@ -1286,6 +1211,7 @@ function selectStamp(id) {
   const stamp = state.stampLibrary.find(s => s.id === id);
   if (stamp) {
     state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
+    markPdfNeedsApply();
     if (pageCanvas.width) drawMarkers();
   }
   renderStampList();
@@ -1296,6 +1222,7 @@ function removeStamp(id) {
   if (!confirm('¿Eliminar este timbre?')) return;
   state.stampLibrary = state.stampLibrary.filter(s => s.id !== id);
   if (state.selectedStampId === id) state.selectedStampId = null;
+  markPdfNeedsApply();
   saveStampLibrary();
   renderStampList();
 }
@@ -1339,6 +1266,7 @@ function saveNewStamp() {
       state.stampLibrary.push(stamp);
       state.selectedStampId = stamp.id;
       state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
+      markPdfNeedsApply();
       saveStampLibrary();
       renderStampList();
       if (pageCanvas.width) drawMarkers();
@@ -1351,21 +1279,48 @@ function saveNewStamp() {
 }
 
 function updateApplyButton() {
-  btnApply.disabled = !(state.pdfDoc && state.selectedStampId);
+  const hasPdf = Boolean(state.pdfDoc);
+  const hasStamp = Boolean(state.selectedStampId);
+  btnApply.disabled = !(hasPdf && hasStamp);
+  if (!hasPdf) {
+    btnApply.textContent = '✦ Aplicar sello';
+    actionIcon.textContent = '📄';
+    actionTitle.textContent = 'Carga una guía';
+    actionHint.textContent = 'Selecciona un PDF para comenzar.';
+    return;
+  }
+  if (!hasStamp) {
+    btnApply.textContent = 'Agrega un timbre';
+    actionIcon.textContent = '⚠';
+    actionTitle.textContent = 'Falta el timbre';
+    actionHint.textContent = 'Agrega o selecciona un timbre para aplicar.';
+    return;
+  }
+  if (state.readyToPrint) {
+    btnApply.textContent = '🖨 Imprimir guía';
+    actionIcon.textContent = '✓';
+    actionTitle.textContent = 'Lista para imprimir';
+    actionHint.textContent = 'El sello y la hora ya fueron aplicados.';
+    return;
+  }
+  btnApply.textContent = '✦ Aplicar sello a ' + state.pageCount + ' páginas';
+  actionIcon.textContent = '✦';
+  actionTitle.textContent = 'Lista para aplicar';
+  actionHint.textContent = 'Revisa la posición y aplica el sello.';
 }
 
 // ─── Reset ────────────────────────────────────────────────
 function resetAll() {
   state.pdfBytes = null; state.modifiedPdfBytes = null; state.pdfDoc = null;
   state.pageCount = 0; state.pageWidth = 0; state.pageHeight = 0;
+  state.readyToPrint = false;
   uploadZone.style.display = '';
   workspace.classList.remove('active');
   pageCount.classList.remove('visible');
-  btnApply.disabled = true;
-  btnDownload.disabled = true; btnPrint.disabled = true;
   $('fileInput').value = '';
   pageCanvas.width = 0; pageCanvas.height = 0;
   markerCanvas.width = 0; markerCanvas.height = 0;
+  updateApplyButton();
   setStatus('idle', 'Listo');
 }
 
@@ -1401,12 +1356,11 @@ function escapeHtml(str) {
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
-    if (!btnApply.disabled) applyStamps();
-    else if (!btnDownload.disabled) downloadPdf();
+    if (!btnApply.disabled) handlePrimaryAction();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
     e.preventDefault();
-    if (!btnPrint.disabled) printPdf();
+    if (state.readyToPrint) printPdf();
   }
 });
 </script>
