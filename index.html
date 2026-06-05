@@ -382,10 +382,12 @@ body::before{
   justify-content:flex-end;
   gap:10px;
   min-width:0;
+  flex-wrap:wrap;
 }
 .marker-toggles{
   display:flex;
   align-items:center;
+  flex-wrap:wrap;
   gap:6px;
   padding:4px;
   border:1px solid var(--border);
@@ -393,7 +395,7 @@ body::before{
   background:rgba(255,255,255,0.84);
 }
 .marker-toggle{
-  min-width:74px;
+  min-width:72px;
   border:0;
   border-radius:10px;
   padding:7px 10px;
@@ -938,6 +940,7 @@ body::before{
             <button class="marker-toggle" id="stampToggle" type="button" aria-pressed="true" onclick="toggleMarker('stamp')">Timbre</button>
             <button class="marker-toggle" id="doubleStampToggle" type="button" aria-pressed="false" onclick="toggleMarker('doubleStamp')">Doble No</button>
             <button class="marker-toggle" id="timeToggle" type="button" aria-pressed="true" onclick="toggleMarker('time')">Hora</button>
+            <button class="marker-toggle" id="materialToggle" type="button" aria-pressed="false" onclick="toggleMarker('material')">Material No</button>
           </div>
           <div class="live-time" id="liveTime">
             <span class="label">Hora actual</span>
@@ -1046,8 +1049,12 @@ const state = {
   stampEnabled: true,
   doubleStamp: false,
   timeEnabled: true,
+  materialEnabled: false,
   stampPosition: { x: 2, y: 232 },
   stamp2Position: { x: 120, y: 232 },
+  materialPosition: { x: 64, y: 211.5 },
+  materialPages: [],
+  materialTrucks: [],
   stampSize: { w: 30, h: 30 },
   stampRotation: 0,
   timePosition: { x: 74, y: 236 },
@@ -1064,6 +1071,14 @@ const HISTORY_DB = 'selloguia_history_db';
 const HISTORY_STORE = 'pdfs';
 const HISTORY_LIMIT = 10;
 const TIME_FONT_SIZE_PT = 12;
+const MATERIAL_FONT_SIZE_PT = 6.7;
+const MATERIAL_ROW_GAP_PT = 9;
+const MATERIAL_DISPATCH_OFFSET_MM = 9.9;
+const MATERIAL_CODE_OFFSET_MM = 22.2;
+const MATERIAL_ROWS = [
+  { article: 'CONSUMO', dispatch: '1', code: '113' },
+  { article: 'PLASTICOS VACIOS', dispatch: '5', code: '6133' },
+];
 
 // ─── DOM refs ────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -1080,6 +1095,7 @@ const actionHint = $('actionHint');
 const stampToggle = $('stampToggle');
 const doubleStampToggle = $('doubleStampToggle');
 const timeToggle = $('timeToggle');
+const materialToggle = $('materialToggle');
 const stampRotationInput = $('stampRotationInput');
 const stampRotationValue = $('stampRotationValue');
 const toastContainer = $('toastContainer');
@@ -1156,6 +1172,14 @@ markerCanvas.addEventListener('mousedown', e => {
     e.preventDefault();
     return;
   }
+  const materialBox = materialBlockBoundsCanvas();
+  if (state.materialEnabled && isCurrentPageMaterialPage() && sx > materialBox.x - hitPad && sx < materialBox.x + materialBox.w + hitPad && sy > materialBox.y - hitPad && sy < materialBox.y + materialBox.h + hitPad) {
+    draggingMarker = 'material';
+    dragOffset = { x: sx - materialBox.anchorX, y: sy - materialBox.anchorY };
+    markerCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+    return;
+  }
   // Place the nearest visible marker. This keeps the UI direct, without technical mode buttons.
   draggingMarker = nearestMarker(sx, sy);
   if (!draggingMarker) return;
@@ -1219,6 +1243,8 @@ function stampCanvasW(){ return state.stampSize.w / (state.pageWidth / PT_PER_MM
 function stampCanvasH(){ return state.stampSize.h / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
 function timeCanvasX(){ return state.timePosition.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
 function timeCanvasY(){ return state.timePosition.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
+function materialCanvasX(){ return state.materialPosition.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
+function materialCanvasY(){ return state.materialPosition.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
 function selectedStamp(){ return state.stampLibrary.find(s => s.id === state.selectedStampId) || null; }
 function timePreviewFontSize(){ return Math.max(12, TIME_FONT_SIZE_PT * (pageCanvas.height / state.pageHeight)); }
 function timeMarkerSize(){
@@ -1243,8 +1269,9 @@ function getStampPreviewImage(stamp) {
 }
 
 function nearestMarker(cx, cy) {
-  if (!state.stampEnabled && !state.timeEnabled) return null;
-  if (!state.stampEnabled && state.timeEnabled) return 'time';
+  const hasMaterial = state.materialEnabled && isCurrentPageMaterialPage();
+  if (!state.stampEnabled && !state.timeEnabled && !hasMaterial) return null;
+  if (!state.stampEnabled && state.timeEnabled && !hasMaterial) return 'time';
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
   const s2x = stamp2CanvasX(), s2y = stamp2CanvasY();
   const tcx = timeCanvasX(), tcy = timeCanvasY();
@@ -1252,6 +1279,10 @@ function nearestMarker(cx, cy) {
   const candidates = [];
   if (state.stampEnabled) candidates.push({ marker: 'stamp', distance: Math.hypot(cx - (scx + sw / 2), cy - (scy + sh / 2)) });
   if (state.timeEnabled) candidates.push({ marker: 'time', distance: Math.hypot(cx - (tcx + timeSize.w / 2), cy - (tcy + timeSize.h / 2)) });
+  if (hasMaterial) {
+    const box = materialBlockBoundsCanvas();
+    candidates.push({ marker: 'material', distance: Math.hypot(cx - (box.x + box.w / 2), cy - (box.y + box.h / 2)) });
+  }
   if (state.doubleStamp) {
     candidates.push({ marker: 'stamp2', distance: Math.hypot(cx - (s2x + sw / 2), cy - (s2y + sh / 2)) });
   }
@@ -1260,8 +1291,40 @@ function nearestMarker(cx, cy) {
 
 function markerSize(which) {
   if (which === 'stamp' || which === 'stamp2') return { x: stampCanvasW() / 2, y: stampCanvasH() / 2 };
+  if (which === 'material') return { x: 0, y: 0 };
   const size = timeMarkerSize();
   return { x: size.w / 2, y: size.h / 2 };
+}
+
+function materialPreviewMetrics() {
+  const fontSize = Math.max(8, MATERIAL_FONT_SIZE_PT * (pageCanvas.height / state.pageHeight));
+  const rowGap = MATERIAL_ROW_GAP_PT * (pageCanvas.height / state.pageHeight);
+  const dispatchOffset = MATERIAL_DISPATCH_OFFSET_MM / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
+  const codeOffset = MATERIAL_CODE_OFFSET_MM / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
+  return { fontSize, rowGap, dispatchOffset, codeOffset };
+}
+
+function materialBlockBoundsCanvas() {
+  const anchorX = materialCanvasX();
+  const anchorY = materialCanvasY();
+  const metrics = materialPreviewMetrics();
+  mctx.save();
+  mctx.font = '800 ' + metrics.fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
+  const articleWidth = Math.max(...MATERIAL_ROWS.map(row => mctx.measureText(row.article).width));
+  const codeWidth = Math.max(...MATERIAL_ROWS.map(row => mctx.measureText(row.code).width));
+  mctx.restore();
+  return {
+    x: anchorX - articleWidth - 6,
+    y: anchorY - metrics.fontSize,
+    w: articleWidth + metrics.codeOffset + codeWidth + 12,
+    h: metrics.fontSize + metrics.rowGap + 6,
+    anchorX,
+    anchorY,
+  };
+}
+
+function isCurrentPageMaterialPage() {
+  return state.materialPages.includes(0);
 }
 
 function stampRotationRadians() {
@@ -1299,6 +1362,8 @@ function clampMarkerPositions() {
   state.stamp2Position.y = Math.max(0, Math.min(state.stamp2Position.y, stampMaxY));
   state.timePosition.x = Math.max(0, Math.min(state.timePosition.x, Math.max(0, pageWidthMm - 35)));
   state.timePosition.y = Math.max(0, Math.min(state.timePosition.y, Math.max(0, pageHeightMm - 10)));
+  state.materialPosition.x = Math.max(20, Math.min(state.materialPosition.x, Math.max(20, pageWidthMm - 45)));
+  state.materialPosition.y = Math.max(20, Math.min(state.materialPosition.y, Math.max(20, pageHeightMm - 25)));
 }
 
 function setMarkerFromCanvas(cx, cy, which) {
@@ -1310,6 +1375,8 @@ function setMarkerFromCanvas(cx, cy, which) {
     state.stampPosition = { x: vx, y: vy };
   } else if (which === 'stamp2') {
     state.stamp2Position = { x: vx, y: vy };
+  } else if (which === 'material') {
+    state.materialPosition = { x: vx, y: vy };
   } else {
     state.timePosition = { x: vx, y: vy };
   }
@@ -1332,6 +1399,10 @@ function syncInputsFromState() {
     timeToggle.setAttribute('aria-pressed', String(state.timeEnabled));
     timeToggle.textContent = state.timeEnabled ? 'Hora Sí' : 'Hora No';
   }
+  if (materialToggle) {
+    materialToggle.setAttribute('aria-pressed', String(state.materialEnabled));
+    materialToggle.textContent = state.materialEnabled ? 'Material Sí' : 'Material No';
+  }
   if (stampRotationInput) stampRotationInput.value = state.stampRotation || 0;
   if (stampRotationValue) stampRotationValue.textContent = (state.stampRotation || 0) + '°';
   document.querySelector('.rotation-control')?.classList.toggle('disabled', !state.stampEnabled);
@@ -1346,6 +1417,7 @@ function toggleMarker(which) {
   }
   if (which === 'doubleStamp' && state.stampEnabled) state.doubleStamp = !state.doubleStamp;
   if (which === 'time') state.timeEnabled = !state.timeEnabled;
+  if (which === 'material') state.materialEnabled = !state.materialEnabled;
   syncInputsFromState();
   markPdfNeedsApply();
   saveSettings();
@@ -1429,6 +1501,10 @@ function drawMarkers() {
     mctx.fillText(timeLabel, tcx, tcy);
     mctx.restore();
   }
+
+  if (state.materialEnabled && isCurrentPageMaterialPage()) {
+    drawMaterialPreview();
+  }
 }
 
 function drawStampPreview(x, y, w, h, stampImage) {
@@ -1447,6 +1523,25 @@ function drawStampPreview(x, y, w, h, stampImage) {
     mctx.textAlign = 'center';
     mctx.fillText('TIMBRE', 0, -h / 2 - 7);
   }
+  mctx.restore();
+}
+
+function drawMaterialPreview() {
+  const anchorX = materialCanvasX();
+  const anchorY = materialCanvasY();
+  const metrics = materialPreviewMetrics();
+  mctx.save();
+  mctx.font = '800 ' + metrics.fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
+  mctx.textBaseline = 'alphabetic';
+  mctx.fillStyle = '#050505';
+  MATERIAL_ROWS.forEach((row, index) => {
+    const y = anchorY + index * metrics.rowGap;
+    mctx.textAlign = 'right';
+    mctx.fillText(row.article, anchorX, y);
+    mctx.textAlign = 'center';
+    mctx.fillText(row.dispatch, anchorX + metrics.dispatchOffset, y);
+    mctx.fillText(row.code, anchorX + metrics.codeOffset, y);
+  });
   mctx.restore();
 }
 
@@ -1487,6 +1582,33 @@ async function handleFileSelect(e) {
   if (file) loadPdf(file);
 }
 
+async function analyzeMaterialPages(bytes) {
+  const result = { pages: [], trucks: [] };
+  if (typeof pdfjsLib === 'undefined') return result;
+  const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(bytes) }).promise;
+  let previousTruck = null;
+  for (let pageIndex = 0; pageIndex < pdfDoc.numPages; pageIndex++) {
+    const page = await pdfDoc.getPage(pageIndex + 1);
+    const textContent = await page.getTextContent();
+    const text = textContent.items.map(item => item.str || '').join(' ');
+    const truck = detectTruckCode(text);
+    if (truck && truck !== previousTruck) {
+      result.pages.push(pageIndex);
+      result.trucks.push(truck);
+    }
+    if (truck) previousTruck = truck;
+  }
+  return result;
+}
+
+function detectTruckCode(text) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  const direct = normalized.match(/CONCEPCION\s+([0-9]{3,5}[A-Z])/i);
+  if (direct) return direct[1].toUpperCase();
+  const fallback = normalized.match(/\b([0-9]{3,5}[A-Z])\b\s+NI:/i);
+  return fallback ? fallback[1].toUpperCase() : null;
+}
+
 async function loadPdf(file) {
   if (state._loading) return;
   if (file.size > 50 * 1024 * 1024) { toast('El archivo excede 50 MB', 'error'); return; }
@@ -1500,6 +1622,9 @@ async function loadPdf(file) {
     state.pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
     const pages = state.pdfDoc.getPages();
     state.pageCount = pages.length;
+    const materialAnalysis = await analyzeMaterialPages(state.pdfBytes);
+    state.materialPages = materialAnalysis.pages;
+    state.materialTrucks = materialAnalysis.trucks;
 
     if (pages.length > 0) {
       const size = pages[0].getSize();
@@ -1525,6 +1650,10 @@ async function loadPdf(file) {
     state.readyToPrint = false;
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' página' + (pages.length !== 1 ? 's' : ''));
+    if (state.materialEnabled) {
+      if (state.materialPages.length) toast('Material operativo: ' + state.materialPages.length + ' camiones detectados', 'success');
+      else toast('Material operativo activo, pero no detecté camiones en este PDF', 'info');
+    }
     if (state.stampEnabled && !state.selectedStampId) {
       toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
     }
@@ -1545,8 +1674,13 @@ function handlePrimaryAction() {
 }
 
 async function applyStamps() {
-  if (!state.pdfDoc || (!state.stampEnabled && !state.timeEnabled)) {
-    toast('Activa timbre u hora para aplicar', 'error');
+  const hasMaterialTargets = state.materialEnabled && state.materialPages.length > 0;
+  if (!state.pdfDoc || (!state.stampEnabled && !state.timeEnabled && !hasMaterialTargets)) {
+    toast('Activa timbre, hora o material operativo para aplicar', 'error');
+    return;
+  }
+  if (state.materialEnabled && !state.materialPages.length && !state.stampEnabled && !state.timeEnabled) {
+    toast('No detecté primeras hojas de camión para material operativo', 'error');
     return;
   }
   if (state.stampEnabled && !state.selectedStampId) {
@@ -1570,7 +1704,7 @@ async function applyStamps() {
         ? await pdfDoc.embedPng(stampBytes)
         : await pdfDoc.embedJpg(stampBytes);
     }
-    const font = state.timeEnabled ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
+    const font = (state.timeEnabled || state.materialEnabled) ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
     const now = new Date();
     const timeStr = formatTime(now, state.timeFormat);
     const fontSize = TIME_FONT_SIZE_PT;
@@ -1579,11 +1713,15 @@ async function applyStamps() {
     const stampHpt = state.stampEnabled ? stampWpt * (stamp.natH / stamp.natW) : 0;
     const rotation = state.stampRotation || 0;
 
-    for (const page of pages) {
+    for (const [pageIndex, page] of pages.entries()) {
       const { height } = page.getSize();
       if (state.stampEnabled) {
         drawStampOnPdfPage(page, stampImage, state.stampPosition, height, stampWpt, stampHpt, rotation);
         if (state.doubleStamp) drawStampOnPdfPage(page, stampImage, state.stamp2Position, height, stampWpt, stampHpt, rotation);
+      }
+
+      if (state.materialEnabled && state.materialPages.includes(pageIndex)) {
+        drawMaterialOnPdfPage(page, font, height);
       }
 
       if (state.timeEnabled) {
@@ -1630,6 +1768,37 @@ function drawStampOnPdfPage(page, stampImage, position, pageHeight, stampWpt, st
   page.drawImage(stampImage, { x: sx, y: sy, width: stampWpt, height: stampHpt, opacity: 0.9 });
 }
 
+function drawMaterialOnPdfPage(page, font, pageHeight) {
+  const articleRightX = state.materialPosition.x * PT_PER_MM;
+  const firstBaselineY = pageHeight - (state.materialPosition.y * PT_PER_MM);
+  const dispatchX = articleRightX + (MATERIAL_DISPATCH_OFFSET_MM * PT_PER_MM);
+  const codeX = articleRightX + (MATERIAL_CODE_OFFSET_MM * PT_PER_MM);
+  MATERIAL_ROWS.forEach((row, index) => {
+    const y = firstBaselineY - (index * MATERIAL_ROW_GAP_PT);
+    page.drawText(row.article, {
+      x: articleRightX - font.widthOfTextAtSize(row.article, MATERIAL_FONT_SIZE_PT),
+      y,
+      size: MATERIAL_FONT_SIZE_PT,
+      font,
+      color: PDFLib.rgb(0, 0, 0),
+    });
+    page.drawText(row.dispatch, {
+      x: dispatchX - font.widthOfTextAtSize(row.dispatch, MATERIAL_FONT_SIZE_PT) / 2,
+      y,
+      size: MATERIAL_FONT_SIZE_PT,
+      font,
+      color: PDFLib.rgb(0, 0, 0),
+    });
+    page.drawText(row.code, {
+      x: codeX - font.widthOfTextAtSize(row.code, MATERIAL_FONT_SIZE_PT) / 2,
+      y,
+      size: MATERIAL_FONT_SIZE_PT,
+      font,
+      color: PDFLib.rgb(0, 0, 0),
+    });
+  });
+}
+
 function printPdf() {
   if (!state.modifiedPdfBytes) return;
   const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
@@ -1670,6 +1839,7 @@ async function saveToHistory(bytes) {
       pageCount: state.pageCount,
       stampName: state.stampEnabled ? ((selectedStamp()?.name || 'Timbre') + (state.doubleStamp ? ' x2' : '')) : 'Sin timbre',
       timeEnabled: state.timeEnabled,
+      materialCount: state.materialEnabled ? state.materialPages.length : 0,
       createdAt: Date.now(),
       bytes: copyBytes(bytes),
     };
@@ -1703,7 +1873,7 @@ async function openHistoryModal() {
       <div class="history-item">
         <div class="history-info">
           <strong>${escapeHtml(item.name)}</strong>
-          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
+          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'}${item.materialCount ? ' · material ' + item.materialCount : ''} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
         </div>
         <button class="btn btn-secondary btn-sm" type="button" onclick="printHistoryPdf('${item.id}')">Imprimir</button>
       </div>
@@ -1725,7 +1895,7 @@ async function renderSideHistory() {
       <button class="side-history-item" type="button" onclick="printHistoryPdf('${item.id}')" aria-label="Imprimir ${escapeHtml(item.name)}">
         <span class="side-history-info">
           <strong>${escapeHtml(shortFileName(item.name))}</strong>
-          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
+          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'}${item.materialCount ? ' · material ' + item.materialCount : ''} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
         </span>
         <span class="side-history-print" aria-hidden="true">↗</span>
       </button>
@@ -1781,8 +1951,10 @@ function loadSettings() {
     if (typeof s.stampEnabled === 'boolean') state.stampEnabled = s.stampEnabled;
     if (typeof s.doubleStamp === 'boolean') state.doubleStamp = s.doubleStamp;
     if (typeof s.timeEnabled === 'boolean') state.timeEnabled = s.timeEnabled;
+    if (typeof s.materialEnabled === 'boolean') state.materialEnabled = s.materialEnabled;
     if (s.stampPosition) state.stampPosition = s.stampPosition;
     if (s.stamp2Position) state.stamp2Position = s.stamp2Position;
+    if (s.materialPosition) state.materialPosition = s.materialPosition;
     if (s.timePosition) state.timePosition = s.timePosition;
     if (s.stampSize) state.stampSize = s.stampSize;
     if (Number.isFinite(s.stampRotation)) state.stampRotation = s.stampRotation;
@@ -1793,8 +1965,8 @@ function loadSettings() {
 function saveSettings() {
   localStorage.setItem('selloguia_settings', JSON.stringify({
     version: SETTINGS_VERSION,
-    stampEnabled: state.stampEnabled, doubleStamp: state.doubleStamp, timeEnabled: state.timeEnabled,
-    stampPosition: state.stampPosition, stamp2Position: state.stamp2Position, timePosition: state.timePosition,
+    stampEnabled: state.stampEnabled, doubleStamp: state.doubleStamp, timeEnabled: state.timeEnabled, materialEnabled: state.materialEnabled,
+    stampPosition: state.stampPosition, stamp2Position: state.stamp2Position, materialPosition: state.materialPosition, timePosition: state.timePosition,
     stampSize: state.stampSize, stampRotation: state.stampRotation, timeFormat: state.timeFormat,
   }));
 }
@@ -2042,7 +2214,8 @@ function seededNoise(n) {
 function updateApplyButton() {
   const hasPdf = Boolean(state.pdfDoc);
   const hasStamp = Boolean(state.selectedStampId);
-  const hasAnyMarker = state.stampEnabled || state.timeEnabled;
+  const hasMaterialTargets = state.materialEnabled && state.materialPages.length > 0;
+  const hasAnyMarker = state.stampEnabled || state.timeEnabled || hasMaterialTargets;
   const canApply = hasPdf && hasAnyMarker && (!state.stampEnabled || hasStamp);
   document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && canApply));
   btnApply.disabled = !canApply;
@@ -2054,10 +2227,10 @@ function updateApplyButton() {
     return;
   }
   if (!hasAnyMarker) {
-    btnApply.textContent = 'Activa timbre u hora';
+    btnApply.textContent = state.materialEnabled ? 'Sin camiones detectados' : 'Activa timbre, hora o material';
     actionIcon.textContent = '○';
-    actionTitle.textContent = 'Nada seleccionado';
-    actionHint.textContent = 'Activa al menos un elemento para aplicar.';
+    actionTitle.textContent = state.materialEnabled ? 'Material sin destino' : 'Nada seleccionado';
+    actionHint.textContent = state.materialEnabled ? 'No encontré primeras hojas de camión en este PDF.' : 'Activa al menos un elemento para aplicar.';
     return;
   }
   if (state.stampEnabled && !hasStamp) {
@@ -2074,14 +2247,17 @@ function updateApplyButton() {
     actionHint.textContent = 'Cambios aplicados. Puedes imprimir ahora.';
     return;
   }
-  const stampLabel = state.doubleStamp ? '2 sellos' : 'sello';
-  const label = state.stampEnabled && state.timeEnabled ? stampLabel + ' y hora'
-    : state.stampEnabled ? stampLabel
-    : 'hora';
+  const parts = [];
+  if (state.stampEnabled) parts.push(state.doubleStamp ? '2 sellos' : 'sello');
+  if (state.timeEnabled) parts.push('hora');
+  if (hasMaterialTargets) parts.push('material operativo');
+  const label = parts.join(', ').replace(/, ([^,]*)$/, ' y $1');
   btnApply.textContent = '✦ Aplicar ' + label + ' a ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '');
   actionIcon.textContent = '✦';
   actionTitle.textContent = 'Lista para aplicar';
-  actionHint.textContent = 'Revisa la posición y aplica los cambios.';
+  actionHint.textContent = hasMaterialTargets
+    ? 'Material operativo en ' + state.materialPages.length + ' primera' + (state.materialPages.length !== 1 ? 's' : '') + ' hoja' + (state.materialPages.length !== 1 ? 's' : '') + ' de camión.'
+    : 'Revisa la posición y aplica los cambios.';
 }
 
 // ─── Reset ────────────────────────────────────────────────
@@ -2089,6 +2265,8 @@ function resetAll() {
   state.pdfBytes = null; state.modifiedPdfBytes = null; state.pdfDoc = null;
   state.pageCount = 0; state.pageWidth = 0; state.pageHeight = 0;
   state.currentFileName = '';
+  state.materialPages = [];
+  state.materialTrucks = [];
   state.readyToPrint = false;
   canvasWrapper.style.setProperty('--page-aspect', DEFAULT_PAGE_POINTS.width / DEFAULT_PAGE_POINTS.height);
   uploadZone.style.display = '';
