@@ -1597,8 +1597,8 @@ function saveNewStamp() {
       id: 's_' + Date.now(),
       name: name,
       dataUrl: dataUrl,
-      natW: 560,
-      natH: 220,
+      natW: 900,
+      natH: 350,
       addedAt: formatTime(new Date(), 'dd/MM/yyyy'),
       generated: true,
     });
@@ -1651,25 +1651,70 @@ function addStampToLibrary(stamp) {
 
 function createTemplateStamp(name) {
   const c = document.createElement('canvas');
-  c.width = 560;
-  c.height = 220;
+  c.width = 900;
+  c.height = 350;
   const ctx = c.getContext('2d');
+  const red = '#c8141d';
   ctx.clearRect(0, 0, c.width, c.height);
-  ctx.strokeStyle = '#c8141d';
-  ctx.lineWidth = 13;
+
+  ctx.strokeStyle = red;
+  ctx.fillStyle = red;
   ctx.lineJoin = 'round';
-  ctx.strokeRect(18, 18, c.width - 36, c.height - 36);
-  ctx.strokeRect(34, 34, c.width - 68, c.height - 68);
-  ctx.fillStyle = '#c8141d';
+  ctx.lineCap = 'round';
+
+  stampRoundedRect(ctx, 22, 28, c.width - 44, c.height - 56, 28, 16);
+  stampRoundedRect(ctx, 42, 48, c.width - 84, c.height - 96, 18, 9);
+
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  ctx.moveTo(44, 128);
+  ctx.lineTo(c.width - 44, 128);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(44, 238);
+  ctx.lineTo(c.width - 44, 238);
+  ctx.stroke();
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = '800 42px Arial, sans-serif';
-  ctx.fillText('ENTREGADO', c.width / 2, 76);
-  ctx.font = fitCanvasText(ctx, name.toUpperCase(), 410, 40, 24);
-  ctx.fillText(name.toUpperCase(), c.width / 2, 128);
-  ctx.font = '700 23px Arial, sans-serif';
-  ctx.fillText('SELLOGUIA', c.width / 2, 166);
+  stampText(ctx, 'COCA COLA EMBONOR S.A.', c.width / 2, 88, 610, 58, 34, red, 8);
+  stampText(ctx, cleanStampName(name), c.width / 2, 178, 520, 64, 34, red, 8);
+  stampText(ctx, 'EXPEDICIÓN CONCEPCIÓN', c.width / 2, 282, 560, 38, 24, red, 5);
+
+  stampStar(ctx, 118, 180, 34, red);
+  stampStar(ctx, c.width - 118, 180, 34, red);
+  distressStamp(ctx, c.width, c.height);
   return c.toDataURL('image/png');
+}
+
+function stampRoundedRect(ctx, x, y, w, h, radius, lineWidth) {
+  ctx.save();
+  ctx.lineWidth = lineWidth;
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function stampText(ctx, text, x, y, maxWidth, startSize, minSize, fill, outline) {
+  ctx.save();
+  ctx.font = fitCanvasText(ctx, text, maxWidth, startSize, minSize);
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = outline;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, y);
+  ctx.restore();
 }
 
 function fitCanvasText(ctx, text, maxWidth, startSize, minSize) {
@@ -1680,6 +1725,56 @@ function fitCanvasText(ctx, text, maxWidth, startSize, minSize) {
     size -= 2;
   } while (size >= minSize);
   return ctx.font;
+}
+
+function cleanStampName(name) {
+  return name.trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+function stampStar(ctx, cx, cy, radius, fill) {
+  ctx.save();
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const angle = -Math.PI / 2 + i * Math.PI / 5;
+    const r = i % 2 === 0 ? radius : radius * 0.42;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function distressStamp(ctx, width, height) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 1500; i++) {
+    const x = seededNoise(i * 11.17) * width;
+    const y = seededNoise(i * 7.31 + 8) * height;
+    const r = 0.6 + seededNoise(i * 3.91 + 2) * 2.5;
+    const opacity = 0.14 + seededNoise(i * 5.33 + 1) * 0.28;
+    ctx.globalAlpha = opacity;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (let i = 0; i < 80; i++) {
+    const x = seededNoise(i * 19.43 + 5) * width;
+    const y = seededNoise(i * 13.81 + 3) * height;
+    const w = 12 + seededNoise(i * 2.19) * 42;
+    const h = 1 + seededNoise(i * 4.71) * 4;
+    ctx.globalAlpha = 0.10;
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.restore();
+}
+
+function seededNoise(n) {
+  const x = Math.sin(n * 999.91) * 10000;
+  return x - Math.floor(x);
 }
 
 function updateApplyButton() {
