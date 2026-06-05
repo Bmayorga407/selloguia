@@ -1777,8 +1777,6 @@ async function applyStamps() {
     const fontSize = TIME_FONT_SIZE_PT * s;
     const materialFontSize = MATERIAL_FONT_SIZE_PT * s;
     const materialRowGap = MATERIAL_ROW_GAP_PT * s;
-    const materialDispatchOffset = MATERIAL_DISPATCH_OFFSET_MM * s;
-    const materialCodeOffset = MATERIAL_CODE_OFFSET_MM * s;
     const materialExtraGap = MATERIAL_EXTRA_GAP_AFTER_2 * s;
 
     const stampWpt = state.stampEnabled ? state.stampSize.w * PT_PER_MM : 0;
@@ -1793,7 +1791,7 @@ async function applyStamps() {
       }
 
       if (state.materialEnabled && state.materialPages.includes(pageIndex)) {
-        drawMaterialOnPdfPage(page, font, height, materialFontSize, materialRowGap, materialDispatchOffset, materialCodeOffset, materialExtraGap);
+        drawMaterialOnPdfPage(page, font, height, materialFontSize, materialRowGap, materialExtraGap);
       }
 
       if (state.timeEnabled) {
@@ -1840,11 +1838,11 @@ function drawStampOnPdfPage(page, stampImage, position, pageHeight, stampWpt, st
   page.drawImage(stampImage, { x: sx, y: sy, width: stampWpt, height: stampHpt, opacity: 0.9 });
 }
 
-function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materialRowGap, materialDispatchOffset, materialCodeOffset, materialExtraGap) {
+function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materialRowGap, materialExtraGap) {
   const articleRightX = state.materialPosition.x * PT_PER_MM;
   const firstBaselineY = pageHeight - (state.materialPosition.y * PT_PER_MM);
-  const dispatchX = articleRightX + (materialDispatchOffset * PT_PER_MM);
-  const codeX = articleRightX + (materialCodeOffset * PT_PER_MM);
+  const dispatchX = articleRightX + (MATERIAL_DISPATCH_OFFSET_MM * PT_PER_MM);
+  const codeX = articleRightX + (MATERIAL_CODE_OFFSET_MM * PT_PER_MM);
   MATERIAL_ROWS.forEach((row, index) => {
     const extra = index >= 2 ? materialExtraGap : 0;
     const y = firstBaselineY - (index * materialRowGap) - extra;
