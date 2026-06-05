@@ -376,6 +376,48 @@ body::before{
 .file-badge .pages{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text3)}
 .file-badge .close{cursor:pointer;color:var(--text3);font-size:1rem;transition:color var(--transition);background:transparent;border:0;font:inherit}
 .file-badge .close:hover{color:var(--red)}
+.toolbar-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  min-width:0;
+}
+.marker-toggles{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:4px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(255,255,255,0.84);
+}
+.marker-toggle{
+  min-width:74px;
+  border:0;
+  border-radius:10px;
+  padding:7px 10px;
+  color:var(--text3);
+  background:transparent;
+  font:inherit;
+  font-size:0.76rem;
+  font-weight:700;
+  cursor:pointer;
+  transition:background-color var(--transition),color var(--transition),box-shadow var(--transition),opacity var(--transition);
+}
+.marker-toggle[aria-pressed="true"]{
+  background:var(--text);
+  color:#fff;
+  box-shadow:0 6px 14px rgba(20,24,32,0.10);
+}
+.marker-toggle:disabled{
+  opacity:0.42;
+  cursor:not-allowed;
+}
+.marker-toggle:focus-visible{
+  outline:2px solid var(--red);
+  outline-offset:3px;
+}
 
 /* Editor */
 .editor-section{min-height:0;overflow:hidden;display:flex}
@@ -544,6 +586,12 @@ body::before{
   border:1px solid var(--border);
   border-radius:14px;
   background:var(--surface2);
+}
+.rotation-control.disabled{
+  opacity:0.45;
+}
+.rotation-control.disabled input[type="range"]{
+  cursor:not-allowed;
 }
 .rotation-label{
   display:flex;
@@ -885,9 +933,16 @@ body::before{
           <span class="pages">·</span>
           <button class="close" type="button" onclick="resetAll()" aria-label="Quitar guía">✕</button>
         </div>
-        <div class="live-time" id="liveTime">
-          <span class="label">Hora actual</span>
-          <span class="value" id="timeDisplay">--:--:--</span>
+        <div class="toolbar-actions">
+          <div class="marker-toggles" aria-label="Elementos a aplicar">
+            <button class="marker-toggle" id="stampToggle" type="button" aria-pressed="true" onclick="toggleMarker('stamp')">Timbre</button>
+            <button class="marker-toggle" id="doubleStampToggle" type="button" aria-pressed="false" onclick="toggleMarker('doubleStamp')">Doble No</button>
+            <button class="marker-toggle" id="timeToggle" type="button" aria-pressed="true" onclick="toggleMarker('time')">Hora</button>
+          </div>
+          <div class="live-time" id="liveTime">
+            <span class="label">Hora actual</span>
+            <span class="value" id="timeDisplay">--:--:--</span>
+          </div>
         </div>
       </div>
 
@@ -988,7 +1043,11 @@ const state = {
   currentFileName: '',
   stampLibrary: [],
   selectedStampId: null,
+  stampEnabled: true,
+  doubleStamp: false,
+  timeEnabled: true,
   stampPosition: { x: 2, y: 232 },
+  stamp2Position: { x: 120, y: 232 },
   stampSize: { w: 30, h: 30 },
   stampRotation: 0,
   timePosition: { x: 74, y: 236 },
@@ -1018,6 +1077,9 @@ const timeDisplay = $('timeDisplay');
 const actionIcon = $('actionIcon');
 const actionTitle = $('actionTitle');
 const actionHint = $('actionHint');
+const stampToggle = $('stampToggle');
+const doubleStampToggle = $('doubleStampToggle');
+const timeToggle = $('timeToggle');
 const stampRotationInput = $('stampRotationInput');
 const stampRotationValue = $('stampRotationValue');
 const toastContainer = $('toastContainer');
@@ -1068,7 +1130,16 @@ markerCanvas.addEventListener('mousedown', e => {
   // Check stamp hit area
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
   const stampHit = rotatedStampHitBox(scx, scy, sw, sh);
-  if (sx > stampHit.x - hitPad && sx < stampHit.x + stampHit.w + hitPad && sy > stampHit.y - hitPad && sy < stampHit.y + stampHit.h + hitPad) {
+  const s2x = stamp2CanvasX(), s2y = stamp2CanvasY();
+  const stamp2Hit = rotatedStampHitBox(s2x, s2y, sw, sh);
+  if (state.stampEnabled && state.doubleStamp && sx > stamp2Hit.x - hitPad && sx < stamp2Hit.x + stamp2Hit.w + hitPad && sy > stamp2Hit.y - hitPad && sy < stamp2Hit.y + stamp2Hit.h + hitPad) {
+    draggingMarker = 'stamp2';
+    dragOffset = { x: sx - s2x, y: sy - s2y };
+    markerCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+    return;
+  }
+  if (state.stampEnabled && sx > stampHit.x - hitPad && sx < stampHit.x + stampHit.w + hitPad && sy > stampHit.y - hitPad && sy < stampHit.y + stampHit.h + hitPad) {
     draggingMarker = 'stamp';
     dragOffset = { x: sx - scx, y: sy - scy };
     markerCanvas.style.cursor = 'grabbing';
@@ -1078,7 +1149,7 @@ markerCanvas.addEventListener('mousedown', e => {
   // Check time hit area
   const tcx = timeCanvasX(), tcy = timeCanvasY();
   const timeSize = timeMarkerSize();
-  if (sx > tcx - hitPad && sx < tcx + timeSize.w + hitPad && sy > tcy - hitPad && sy < tcy + timeSize.h + hitPad) {
+  if (state.timeEnabled && sx > tcx - hitPad && sx < tcx + timeSize.w + hitPad && sy > tcy - hitPad && sy < tcy + timeSize.h + hitPad) {
     draggingMarker = 'time';
     dragOffset = { x: sx - tcx, y: sy - tcy };
     markerCanvas.style.cursor = 'grabbing';
@@ -1086,9 +1157,8 @@ markerCanvas.addEventListener('mousedown', e => {
     return;
   }
   // Place the nearest visible marker. This keeps the UI direct, without technical mode buttons.
-  const stampDistance = Math.hypot(sx - (scx + sw / 2), sy - (scy + sh / 2));
-  const timeDistance = Math.hypot(sx - (tcx + timeSize.w / 2), sy - (tcy + timeSize.h / 2));
-  draggingMarker = stampDistance <= timeDistance ? 'stamp' : 'time';
+  draggingMarker = nearestMarker(sx, sy);
+  if (!draggingMarker) return;
   dragOffset = markerSize(draggingMarker);
   setMarkerFromCanvas(sx - dragOffset.x, sy - dragOffset.y, draggingMarker);
 });
@@ -1102,6 +1172,7 @@ document.addEventListener('mousemove', e => {
 });
 
 document.addEventListener('mouseup', () => {
+  if (draggingMarker) saveSettings();
   draggingMarker = null;
   dragOffset = { x: 0, y: 0 };
   markerCanvas.style.cursor = 'grab';
@@ -1113,14 +1184,37 @@ markerCanvas.addEventListener('touchstart', e => {
   const sx = (e.touches[0].clientX - rect.left) / rect.width * pageCanvas.width;
   const sy = (e.touches[0].clientY - rect.top) / rect.height * pageCanvas.height;
   draggingMarker = nearestMarker(sx, sy);
+  if (!draggingMarker) return;
   dragOffset = markerSize(draggingMarker);
   setMarkerFromCanvas(sx - dragOffset.x, sy - dragOffset.y, draggingMarker);
   e.preventDefault();
 }, { passive: false });
 
+markerCanvas.addEventListener('touchmove', e => {
+  if (!draggingMarker || !pageCanvas.width || !e.touches[0]) return;
+  const rect = markerCanvas.getBoundingClientRect();
+  const sx = Math.max(0, Math.min(pageCanvas.width, (e.touches[0].clientX - rect.left) / rect.width * pageCanvas.width));
+  const sy = Math.max(0, Math.min(pageCanvas.height, (e.touches[0].clientY - rect.top) / rect.height * pageCanvas.height));
+  setMarkerFromCanvas(sx - dragOffset.x, sy - dragOffset.y, draggingMarker);
+  e.preventDefault();
+}, { passive: false });
+
+markerCanvas.addEventListener('touchend', () => {
+  if (draggingMarker) saveSettings();
+  draggingMarker = null;
+  dragOffset = { x: 0, y: 0 };
+});
+
+markerCanvas.addEventListener('touchcancel', () => {
+  draggingMarker = null;
+  dragOffset = { x: 0, y: 0 };
+});
+
 // ─── Coordinate helpers ───────────────────────────────────
 function stampCanvasX(){ return state.stampPosition.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
 function stampCanvasY(){ return state.stampPosition.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
+function stamp2CanvasX(){ return state.stamp2Position.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
+function stamp2CanvasY(){ return state.stamp2Position.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
 function stampCanvasW(){ return state.stampSize.w / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
 function stampCanvasH(){ return state.stampSize.h / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
 function timeCanvasX(){ return state.timePosition.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
@@ -1149,16 +1243,23 @@ function getStampPreviewImage(stamp) {
 }
 
 function nearestMarker(cx, cy) {
+  if (!state.stampEnabled && !state.timeEnabled) return null;
+  if (!state.stampEnabled && state.timeEnabled) return 'time';
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
+  const s2x = stamp2CanvasX(), s2y = stamp2CanvasY();
   const tcx = timeCanvasX(), tcy = timeCanvasY();
   const timeSize = timeMarkerSize();
-  const stampDistance = Math.hypot(cx - (scx + sw / 2), cy - (scy + sh / 2));
-  const timeDistance = Math.hypot(cx - (tcx + timeSize.w / 2), cy - (tcy + timeSize.h / 2));
-  return stampDistance <= timeDistance ? 'stamp' : 'time';
+  const candidates = [];
+  if (state.stampEnabled) candidates.push({ marker: 'stamp', distance: Math.hypot(cx - (scx + sw / 2), cy - (scy + sh / 2)) });
+  if (state.timeEnabled) candidates.push({ marker: 'time', distance: Math.hypot(cx - (tcx + timeSize.w / 2), cy - (tcy + timeSize.h / 2)) });
+  if (state.doubleStamp) {
+    candidates.push({ marker: 'stamp2', distance: Math.hypot(cx - (s2x + sw / 2), cy - (s2y + sh / 2)) });
+  }
+  return candidates.sort((a, b) => a.distance - b.distance)[0].marker;
 }
 
 function markerSize(which) {
-  if (which === 'stamp') return { x: stampCanvasW() / 2, y: stampCanvasH() / 2 };
+  if (which === 'stamp' || which === 'stamp2') return { x: stampCanvasW() / 2, y: stampCanvasH() / 2 };
   const size = timeMarkerSize();
   return { x: size.w / 2, y: size.h / 2 };
 }
@@ -1194,6 +1295,8 @@ function clampMarkerPositions() {
   const stampMaxY = Math.max(0, pageHeightMm - state.stampSize.h);
   state.stampPosition.x = Math.max(0, Math.min(state.stampPosition.x, stampMaxX));
   state.stampPosition.y = Math.max(0, Math.min(state.stampPosition.y, stampMaxY));
+  state.stamp2Position.x = Math.max(0, Math.min(state.stamp2Position.x, stampMaxX));
+  state.stamp2Position.y = Math.max(0, Math.min(state.stamp2Position.y, stampMaxY));
   state.timePosition.x = Math.max(0, Math.min(state.timePosition.x, Math.max(0, pageWidthMm - 35)));
   state.timePosition.y = Math.max(0, Math.min(state.timePosition.y, Math.max(0, pageHeightMm - 10)));
 }
@@ -1205,6 +1308,8 @@ function setMarkerFromCanvas(cx, cy, which) {
   const vy = Math.max(0, Math.round(mmY * 2) / 2);
   if (which === 'stamp') {
     state.stampPosition = { x: vx, y: vy };
+  } else if (which === 'stamp2') {
+    state.stamp2Position = { x: vx, y: vy };
   } else {
     state.timePosition = { x: vx, y: vy };
   }
@@ -1214,12 +1319,41 @@ function setMarkerFromCanvas(cx, cy, which) {
 }
 
 function syncInputsFromState() {
+  if (stampToggle) {
+    stampToggle.setAttribute('aria-pressed', String(state.stampEnabled));
+    stampToggle.textContent = state.stampEnabled ? 'Timbre Sí' : 'Timbre No';
+  }
+  if (doubleStampToggle) {
+    doubleStampToggle.disabled = !state.stampEnabled;
+    doubleStampToggle.setAttribute('aria-pressed', String(state.stampEnabled && state.doubleStamp));
+    doubleStampToggle.textContent = state.doubleStamp ? 'Doble Sí' : 'Doble No';
+  }
+  if (timeToggle) {
+    timeToggle.setAttribute('aria-pressed', String(state.timeEnabled));
+    timeToggle.textContent = state.timeEnabled ? 'Hora Sí' : 'Hora No';
+  }
   if (stampRotationInput) stampRotationInput.value = state.stampRotation || 0;
   if (stampRotationValue) stampRotationValue.textContent = (state.stampRotation || 0) + '°';
+  document.querySelector('.rotation-control')?.classList.toggle('disabled', !state.stampEnabled);
+  if (stampRotationInput) stampRotationInput.disabled = !state.stampEnabled;
   updateApplyButton();
 }
 
+function toggleMarker(which) {
+  if (which === 'stamp') {
+    state.stampEnabled = !state.stampEnabled;
+    if (!state.stampEnabled) state.doubleStamp = false;
+  }
+  if (which === 'doubleStamp' && state.stampEnabled) state.doubleStamp = !state.doubleStamp;
+  if (which === 'time') state.timeEnabled = !state.timeEnabled;
+  syncInputsFromState();
+  markPdfNeedsApply();
+  saveSettings();
+  if (pageCanvas.width) drawMarkers();
+}
+
 function updateStampRotation(value) {
+  if (!state.stampEnabled) return;
   state.stampRotation = Math.max(-15, Math.min(15, Number(value) || 0));
   if (stampRotationValue) stampRotationValue.textContent = state.stampRotation + '°';
   markPdfNeedsApply();
@@ -1277,31 +1411,42 @@ function drawMarkers() {
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
   const stamp = selectedStamp();
   const stampImage = getStampPreviewImage(stamp);
+  if (state.stampEnabled) {
+    drawStampPreview(scx, scy, sw, sh, stampImage);
+    if (state.doubleStamp) drawStampPreview(stamp2CanvasX(), stamp2CanvasY(), sw, sh, stampImage);
+  }
+
+  // Time
+  if (state.timeEnabled) {
+    const tcx = timeCanvasX(), tcy = timeCanvasY();
+    const timeLabel = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+    const timeFontSize = timePreviewFontSize();
+    mctx.save();
+    mctx.font = '800 ' + timeFontSize + 'px "DM Mono", ui-monospace, monospace';
+    mctx.textAlign = 'left';
+    mctx.textBaseline = 'top';
+    mctx.fillStyle = '#050505';
+    mctx.fillText(timeLabel, tcx, tcy);
+    mctx.restore();
+  }
+}
+
+function drawStampPreview(x, y, w, h, stampImage) {
   mctx.save();
-  mctx.translate(scx + sw / 2, scy + sh / 2);
+  mctx.translate(x + w / 2, y + h / 2);
   mctx.rotate(stampRotationRadians());
   if (stampImage && stampImage.complete && stampImage.naturalWidth) {
     mctx.globalAlpha = 0.92;
-    mctx.drawImage(stampImage, -sw / 2, -sh / 2, sw, sh);
+    mctx.drawImage(stampImage, -w / 2, -h / 2, w, h);
     mctx.globalAlpha = 1;
   } else {
     mctx.fillStyle = 'rgba(232,17,27,0.08)';
-    mctx.fillRect(-sw / 2, -sh / 2, sw, sh);
-    mctx.fillStyle = '#e8111b'; mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-    mctx.textAlign = 'center'; mctx.fillText('TIMBRE', 0, -sh / 2 - 7);
+    mctx.fillRect(-w / 2, -h / 2, w, h);
+    mctx.fillStyle = '#e8111b';
+    mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+    mctx.textAlign = 'center';
+    mctx.fillText('TIMBRE', 0, -h / 2 - 7);
   }
-  mctx.restore();
-
-  // Time
-  const tcx = timeCanvasX(), tcy = timeCanvasY();
-  const timeLabel = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
-  const timeFontSize = timePreviewFontSize();
-  mctx.save();
-  mctx.font = '800 ' + timeFontSize + 'px "DM Mono", ui-monospace, monospace';
-  mctx.textAlign = 'left';
-  mctx.textBaseline = 'top';
-  mctx.fillStyle = '#050505';
-  mctx.fillText(timeLabel, tcx, tcy);
   mctx.restore();
 }
 
@@ -1380,7 +1525,7 @@ async function loadPdf(file) {
     state.readyToPrint = false;
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' página' + (pages.length !== 1 ? 's' : ''));
-    if (!state.selectedStampId) {
+    if (state.stampEnabled && !state.selectedStampId) {
       toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
     }
     saveSettings();
@@ -1400,12 +1545,16 @@ function handlePrimaryAction() {
 }
 
 async function applyStamps() {
-  if (!state.pdfDoc || !state.selectedStampId) {
+  if (!state.pdfDoc || (!state.stampEnabled && !state.timeEnabled)) {
+    toast('Activa timbre u hora para aplicar', 'error');
+    return;
+  }
+  if (state.stampEnabled && !state.selectedStampId) {
     toast('Selecciona un timbre primero', 'error');
     return;
   }
   const stamp = state.stampLibrary.find(s => s.id === state.selectedStampId);
-  if (!stamp) { toast('Timbre no encontrado', 'error'); return; }
+  if (state.stampEnabled && !stamp) { toast('Timbre no encontrado', 'error'); return; }
 
   setStatus('processing', 'Aplicando sellos…');
   btnApply.disabled = true;
@@ -1414,44 +1563,34 @@ async function applyStamps() {
   try {
     const pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
     const pages = pdfDoc.getPages();
-    const stampBytes = base64ToBytes(stamp.dataUrl.split(',')[1]);
-    const stampImage = stamp.dataUrl.startsWith('data:image/png')
-      ? await pdfDoc.embedPng(stampBytes)
-      : await pdfDoc.embedJpg(stampBytes);
-    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    let stampImage = null;
+    if (state.stampEnabled) {
+      const stampBytes = base64ToBytes(stamp.dataUrl.split(',')[1]);
+      stampImage = stamp.dataUrl.startsWith('data:image/png')
+        ? await pdfDoc.embedPng(stampBytes)
+        : await pdfDoc.embedJpg(stampBytes);
+    }
+    const font = state.timeEnabled ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
     const now = new Date();
     const timeStr = formatTime(now, state.timeFormat);
     const fontSize = TIME_FONT_SIZE_PT;
 
-    const stampWpt = state.stampSize.w * PT_PER_MM;
-    const stampHpt = stampWpt * (stamp.natH / stamp.natW);
+    const stampWpt = state.stampEnabled ? state.stampSize.w * PT_PER_MM : 0;
+    const stampHpt = state.stampEnabled ? stampWpt * (stamp.natH / stamp.natW) : 0;
     const rotation = state.stampRotation || 0;
 
     for (const page of pages) {
       const { height } = page.getSize();
-      const sx = state.stampPosition.x * PT_PER_MM;
-      const sy = height - (state.stampPosition.y * PT_PER_MM) - stampHpt;
-      if (rotation) {
-        const centerX = sx + stampWpt / 2;
-        const centerY = sy + stampHpt / 2;
-        const angle = -rotation * Math.PI / 180;
-        const rotatedX = centerX - (stampWpt * Math.cos(angle) - stampHpt * Math.sin(angle)) / 2;
-        const rotatedY = centerY - (stampWpt * Math.sin(angle) + stampHpt * Math.cos(angle)) / 2;
-        page.drawImage(stampImage, {
-          x: rotatedX,
-          y: rotatedY,
-          width: stampWpt,
-          height: stampHpt,
-          opacity: 0.9,
-          rotate: PDFLib.degrees(-rotation),
-        });
-      } else {
-        page.drawImage(stampImage, { x: sx, y: sy, width: stampWpt, height: stampHpt, opacity: 0.9 });
+      if (state.stampEnabled) {
+        drawStampOnPdfPage(page, stampImage, state.stampPosition, height, stampWpt, stampHpt, rotation);
+        if (state.doubleStamp) drawStampOnPdfPage(page, stampImage, state.stamp2Position, height, stampWpt, stampHpt, rotation);
       }
 
-      const tx = state.timePosition.x * PT_PER_MM;
-      const ty = height - (state.timePosition.y * PT_PER_MM) - fontSize;
-      page.drawText(timeStr, { x: tx, y: ty, size: fontSize, font, color: PDFLib.rgb(0, 0, 0) });
+      if (state.timeEnabled) {
+        const tx = state.timePosition.x * PT_PER_MM;
+        const ty = height - (state.timePosition.y * PT_PER_MM) - fontSize;
+        page.drawText(timeStr, { x: tx, y: ty, size: fontSize, font, color: PDFLib.rgb(0, 0, 0) });
+      }
     }
 
     state.modifiedPdfBytes = await pdfDoc.save();
@@ -1467,6 +1606,28 @@ async function applyStamps() {
   } finally {
     updateApplyButton();
   }
+}
+
+function drawStampOnPdfPage(page, stampImage, position, pageHeight, stampWpt, stampHpt, rotation) {
+  const sx = position.x * PT_PER_MM;
+  const sy = pageHeight - (position.y * PT_PER_MM) - stampHpt;
+  if (rotation) {
+    const centerX = sx + stampWpt / 2;
+    const centerY = sy + stampHpt / 2;
+    const angle = -rotation * Math.PI / 180;
+    const rotatedX = centerX - (stampWpt * Math.cos(angle) - stampHpt * Math.sin(angle)) / 2;
+    const rotatedY = centerY - (stampWpt * Math.sin(angle) + stampHpt * Math.cos(angle)) / 2;
+    page.drawImage(stampImage, {
+      x: rotatedX,
+      y: rotatedY,
+      width: stampWpt,
+      height: stampHpt,
+      opacity: 0.9,
+      rotate: PDFLib.degrees(-rotation),
+    });
+    return;
+  }
+  page.drawImage(stampImage, { x: sx, y: sy, width: stampWpt, height: stampHpt, opacity: 0.9 });
 }
 
 function printPdf() {
@@ -1507,7 +1668,8 @@ async function saveToHistory(bytes) {
       id: 'pdf_' + Date.now(),
       name: state.currentFileName || 'guia_sellada.pdf',
       pageCount: state.pageCount,
-      stampName: selectedStamp()?.name || 'Timbre',
+      stampName: state.stampEnabled ? ((selectedStamp()?.name || 'Timbre') + (state.doubleStamp ? ' x2' : '')) : 'Sin timbre',
+      timeEnabled: state.timeEnabled,
       createdAt: Date.now(),
       bytes: copyBytes(bytes),
     };
@@ -1541,7 +1703,7 @@ async function openHistoryModal() {
       <div class="history-item">
         <div class="history-info">
           <strong>${escapeHtml(item.name)}</strong>
-          <span>${escapeHtml(item.stampName || 'Timbre')} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
+          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
         </div>
         <button class="btn btn-secondary btn-sm" type="button" onclick="printHistoryPdf('${item.id}')">Imprimir</button>
       </div>
@@ -1563,7 +1725,7 @@ async function renderSideHistory() {
       <button class="side-history-item" type="button" onclick="printHistoryPdf('${item.id}')" aria-label="Imprimir ${escapeHtml(item.name)}">
         <span class="side-history-info">
           <strong>${escapeHtml(shortFileName(item.name))}</strong>
-          <span>${escapeHtml(item.stampName || 'Timbre')} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
+          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
         </span>
         <span class="side-history-print" aria-hidden="true">↗</span>
       </button>
@@ -1616,17 +1778,23 @@ function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem('selloguia_settings') || '{}');
     if (s.version !== SETTINGS_VERSION) return;
+    if (typeof s.stampEnabled === 'boolean') state.stampEnabled = s.stampEnabled;
+    if (typeof s.doubleStamp === 'boolean') state.doubleStamp = s.doubleStamp;
+    if (typeof s.timeEnabled === 'boolean') state.timeEnabled = s.timeEnabled;
     if (s.stampPosition) state.stampPosition = s.stampPosition;
+    if (s.stamp2Position) state.stamp2Position = s.stamp2Position;
     if (s.timePosition) state.timePosition = s.timePosition;
     if (s.stampSize) state.stampSize = s.stampSize;
     if (Number.isFinite(s.stampRotation)) state.stampRotation = s.stampRotation;
     if (s.timeFormat) state.timeFormat = s.timeFormat;
+    if (!state.stampEnabled) state.doubleStamp = false;
   } catch {}
 }
 function saveSettings() {
   localStorage.setItem('selloguia_settings', JSON.stringify({
     version: SETTINGS_VERSION,
-    stampPosition: state.stampPosition, timePosition: state.timePosition,
+    stampEnabled: state.stampEnabled, doubleStamp: state.doubleStamp, timeEnabled: state.timeEnabled,
+    stampPosition: state.stampPosition, stamp2Position: state.stamp2Position, timePosition: state.timePosition,
     stampSize: state.stampSize, stampRotation: state.stampRotation, timeFormat: state.timeFormat,
   }));
 }
@@ -1874,8 +2042,10 @@ function seededNoise(n) {
 function updateApplyButton() {
   const hasPdf = Boolean(state.pdfDoc);
   const hasStamp = Boolean(state.selectedStampId);
-  document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && hasPdf && hasStamp));
-  btnApply.disabled = !(hasPdf && hasStamp);
+  const hasAnyMarker = state.stampEnabled || state.timeEnabled;
+  const canApply = hasPdf && hasAnyMarker && (!state.stampEnabled || hasStamp);
+  document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && canApply));
+  btnApply.disabled = !canApply;
   if (!hasPdf) {
     btnApply.textContent = '✦ Aplicar sello';
     actionIcon.textContent = '📄';
@@ -1883,7 +2053,14 @@ function updateApplyButton() {
     actionHint.textContent = 'Selecciona un PDF para comenzar.';
     return;
   }
-  if (!hasStamp) {
+  if (!hasAnyMarker) {
+    btnApply.textContent = 'Activa timbre u hora';
+    actionIcon.textContent = '○';
+    actionTitle.textContent = 'Nada seleccionado';
+    actionHint.textContent = 'Activa al menos un elemento para aplicar.';
+    return;
+  }
+  if (state.stampEnabled && !hasStamp) {
     btnApply.textContent = 'Agrega un timbre';
     actionIcon.textContent = '⚠';
     actionTitle.textContent = 'Falta el timbre';
@@ -1894,13 +2071,17 @@ function updateApplyButton() {
     btnApply.textContent = '🖨 Imprimir guía';
     actionIcon.textContent = '✓';
     actionTitle.textContent = 'Lista para imprimir';
-    actionHint.textContent = 'Sellos aplicados. Puedes imprimir ahora.';
+    actionHint.textContent = 'Cambios aplicados. Puedes imprimir ahora.';
     return;
   }
-  btnApply.textContent = '✦ Aplicar sello a ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '');
+  const stampLabel = state.doubleStamp ? '2 sellos' : 'sello';
+  const label = state.stampEnabled && state.timeEnabled ? stampLabel + ' y hora'
+    : state.stampEnabled ? stampLabel
+    : 'hora';
+  btnApply.textContent = '✦ Aplicar ' + label + ' a ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '');
   actionIcon.textContent = '✦';
   actionTitle.textContent = 'Lista para aplicar';
-  actionHint.textContent = 'Revisa la posición y aplica el sello.';
+  actionHint.textContent = 'Revisa la posición y aplica los cambios.';
 }
 
 // ─── Reset ────────────────────────────────────────────────
