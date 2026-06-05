@@ -64,8 +64,8 @@ body::before{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:0 24px;
-  height:56px;
+  padding:0 20px;
+  height:48px;
   background:rgba(255,255,255,0.86);
   border-bottom:1px solid var(--border);
 }
@@ -113,7 +113,7 @@ body::before{
   position:relative;
   z-index:10;
   min-height:0;
-  height:calc(100dvh - 56px);
+  height:calc(100dvh - 48px);
 }
 
 /* Sidebar */
@@ -453,7 +453,7 @@ body::before{
 .canvas-wrapper{
   position:relative;
   --page-aspect:0.7727;
-  width:min(100%,760px,calc((100dvh - 226px) * var(--page-aspect)));
+  width:min(100%,760px,calc((100dvh - 274px) * var(--page-aspect)));
   aspect-ratio:var(--page-aspect);
   border-radius:8px;
   overflow:hidden;
@@ -888,7 +888,7 @@ body::before{
 @media(max-width:1080px){
   .workspace.active{grid-template-columns:1fr}
   .main-content{padding-bottom:118px}
-  .canvas-wrapper{width:min(100%,660px,calc((100dvh - 270px) * var(--page-aspect)))}
+  .canvas-wrapper{width:min(100%,660px,calc((100dvh - 318px) * var(--page-aspect)))}
   .action-bar{
     position:fixed;
     left:22px;
