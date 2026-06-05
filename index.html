@@ -22,17 +22,17 @@
   --text2: #b4bac6;
   --text3: #727b8c;
   --red: #e8111b;
-  --red-glow: rgba(232,17,27,0.25);
   --green: #34d399;
   --amber: #fbbf24;
   --radius: 12px;
   --radius-sm: 8px;
-  --transition: 180ms cubic-bezier(0.4,0,0.2,1);
+  --transition: 180ms ease-out;
   --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
 html{font-size:15px}
+html{color-scheme:dark}
 
 body{
   font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
@@ -42,14 +42,16 @@ body{
   display:flex;
   flex-direction:column;
   overflow-x:hidden;
+  touch-action:manipulation;
   -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
 }
 
 body::before{
   content:'';
   position:fixed;
   inset:0;
-  background:linear-gradient(180deg,rgba(255,255,255,0.03),transparent 28%);
+  background:transparent;
   pointer-events:none;
   z-index:0;
 }
@@ -58,7 +60,7 @@ body::before{
 .header{
   position:sticky;
   top:0;
-  z-index:100;
+  z-index:20;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -66,7 +68,6 @@ body::before{
   height:54px;
   background:rgba(18,20,26,0.94);
   border-bottom:1px solid var(--border);
-  backdrop-filter:blur(18px);
 }
 .logo{
   display:flex;
@@ -99,7 +100,7 @@ body::before{
   border:1px solid var(--border);
   opacity:0;
   transform:translateX(8px);
-  transition:all var(--transition);
+  transition:opacity var(--transition),transform var(--transition);
 }
 .page-count.visible{opacity:1;transform:translateX(0)}
 
@@ -109,9 +110,9 @@ body::before{
   grid-template-columns:260px minmax(0,1fr);
   flex:1;
   position:relative;
-  z-index:1;
+  z-index:10;
   min-height:0;
-  height:calc(100vh - 82px);
+  height:calc(100dvh - 54px);
 }
 
 /* Sidebar */
@@ -148,12 +149,16 @@ body::before{
   align-items:center;
   justify-content:center;
   font-size:1.1rem;
-  transition:all var(--transition);
+  transition:background-color var(--transition),border-color var(--transition),color var(--transition),transform var(--transition),opacity var(--transition);
 }
 .btn-icon:hover{
   background:var(--surface3);
   border-color:var(--border-light);
   color:var(--text);
+}
+.btn-icon:focus-visible,.btn:focus-visible,.stamp-item:focus-visible,.stamp-delete:focus-visible{
+  outline:2px solid var(--red);
+  outline-offset:3px;
 }
 
 /* Stamp list */
@@ -162,17 +167,21 @@ body::before{
   flex-direction:column;
   gap:8px;
 }
+.stamp-row{position:relative}
 .stamp-item{
   display:flex;
   align-items:center;
   gap:12px;
+  width:100%;
   padding:10px 12px;
   border-radius:var(--radius-sm);
   background:var(--surface2);
   border:2px solid transparent;
+  color:var(--text);
+  font:inherit;
+  text-align:left;
   cursor:pointer;
-  transition:all var(--transition);
-  position:relative;
+  transition:background-color var(--transition),border-color var(--transition),opacity var(--transition);
 }
 .stamp-item:hover{
   background:var(--surface3);
@@ -180,7 +189,7 @@ body::before{
 }
 .stamp-item.selected{
   border-color:var(--red);
-  background:var(--red-glow);
+  background:rgba(232,17,27,0.16);
 }
 .stamp-thumb{
   width:44px;
@@ -237,9 +246,9 @@ body::before{
   align-items:center;
   justify-content:center;
   opacity:0;
-  transition:all var(--transition);
+  transition:opacity var(--transition),background-color var(--transition),color var(--transition);
 }
-.stamp-item:hover .stamp-delete{opacity:1}
+.stamp-row:hover .stamp-delete,.stamp-delete:focus-visible{opacity:1}
 .stamp-delete:hover{background:var(--red);color:#fff}
 .sidebar-empty{
   text-align:center;
@@ -274,18 +283,20 @@ body::before{
   border:2px dashed var(--border);
   border-radius:var(--radius);
   background:var(--surface);
-  transition:all var(--transition);
+  transition:border-color var(--transition),background-color var(--transition),box-shadow var(--transition);
   cursor:pointer;
   min-height:320px;
+  width:100%;
+  color:var(--text);
+  font-family:inherit;
 }
 .upload-zone:hover,.upload-zone.drag-over{
   border-color:var(--red);
   background:var(--surface2);
-  box-shadow:inset 0 0 60px var(--red-glow);
+  box-shadow:inset 0 0 0 1px rgba(232,17,27,0.18);
 }
 .upload-zone.drag-over{border-style:solid}
 .upload-icon{
-  appearance:none;
   border:1px solid var(--border);
   width:64px;
   height:64px;
@@ -297,8 +308,8 @@ body::before{
   font-size:1.8rem;
   margin-bottom:16px;
   color:var(--text);
-  cursor:pointer;
-  transition:transform var(--transition),border-color var(--transition),background var(--transition);
+  cursor:inherit;
+  transition:transform var(--transition),border-color var(--transition),background-color var(--transition);
 }
 .upload-icon:hover{transform:translateY(-1px);border-color:var(--red);background:var(--surface3)}
 .upload-icon:focus-visible{outline:2px solid var(--red);outline-offset:4px}
@@ -319,18 +330,14 @@ body::before{
 .workspace{display:none;gap:12px;min-height:0}
 .workspace.active{
   display:grid;
-  grid-template-columns:minmax(0,1fr);
-  grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-columns:minmax(0,1fr) 310px;
+  grid-template-rows:minmax(0,1fr);
+  gap:14px;
   align-items:start;
   height:100%;
 }
 .workspace-toolbar{
-  grid-column:1 / -1;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
+  display:none;
 }
 .file-badge{
   display:flex;
@@ -344,20 +351,21 @@ body::before{
 }
 .file-badge .name{font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file-badge .pages{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text3)}
-.file-badge .close{cursor:pointer;color:var(--text3);font-size:1rem;transition:color var(--transition)}
+.file-badge .close{cursor:pointer;color:var(--text3);font-size:1rem;transition:color var(--transition);background:transparent;border:0;font:inherit}
 .file-badge .close:hover{color:var(--red)}
 
 /* Editor */
-.editor-section{min-height:0;overflow:hidden}
+.editor-section{min-height:0;overflow:hidden;display:flex}
 .editor-card{
   background:rgba(18,20,26,0.78);
   border:1px solid var(--border);
-  border-radius:18px;
+  border-radius:16px;
   padding:18px 18px 20px;
   display:flex;
   flex-direction:column;
-  gap:16px;
+  gap:12px;
   min-height:0;
+  width:100%;
   box-shadow:0 20px 80px rgba(0,0,0,0.24);
 }
 .editor-header{
@@ -372,11 +380,12 @@ body::before{
   font-weight:650;
   color:var(--text2);
   letter-spacing:0;
+  text-wrap:balance;
 }
 
 .canvas-wrapper{
   position:relative;
-  width:min(100%,510px);
+  width:min(100%,620px,calc((100dvh - 160px) * 0.7727));
   aspect-ratio:8.5 / 11;
   border-radius:14px;
   overflow:hidden;
@@ -388,6 +397,7 @@ body::before{
   align-self:center;
   justify-self:center;
   padding:12px;
+  margin:auto;
 }
 .canvas-wrapper canvas{
   display:block;
@@ -434,11 +444,11 @@ body::before{
   font-family:inherit;
   cursor:pointer;
   border:none;
-  transition:all var(--transition);
+  transition:transform var(--transition),background-color var(--transition),border-color var(--transition),box-shadow var(--transition),color var(--transition),opacity var(--transition);
   white-space:nowrap;
 }
-.btn-primary{background:var(--red);color:#fff;box-shadow:0 2px 8px var(--red-glow)}
-.btn-primary:hover{background:#f01f29;box-shadow:0 4px 16px var(--red-glow);transform:translateY(-1px)}
+.btn-primary{background:var(--red);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.28)}
+.btn-primary:hover{background:#f01f29;box-shadow:0 4px 14px rgba(0,0,0,0.32);transform:translateY(-1px)}
 .btn-primary:active{transform:translateY(0)}
 .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
 .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
@@ -447,25 +457,27 @@ body::before{
 .btn-ghost:hover{background:var(--surface2);border-color:var(--border);color:var(--text)}
 .btn-sm{padding:6px 12px;font-size:0.78rem;border-radius:6px}
 .action-bar{
-  grid-column:1 / -1;
+  position:static;
+  z-index:10;
+  align-self:start;
+  max-width:none;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:8px;
-  flex-wrap:wrap;
+  flex-direction:column;
+  gap:14px;
   background:rgba(25,28,36,0.9);
   border:1px solid var(--border);
   border-radius:18px;
   padding:14px;
-  position:relative;
-  z-index:10;
   box-shadow:0 12px 44px rgba(0,0,0,0.22);
 }
 .action-summary{
   display:flex;
   align-items:center;
   gap:12px;
-  min-width:220px;
+  width:100%;
+  min-width:0;
 }
 .action-summary .status-icon{
   width:38px;
@@ -478,10 +490,11 @@ body::before{
   border:1px solid var(--border-light);
 }
 .action-copy{display:flex;flex-direction:column;gap:3px}
-.action-copy strong{font-size:0.9rem;font-weight:700}
-.action-copy span{font-size:0.76rem;color:var(--text3)}
+.action-copy strong{font-size:0.9rem;font-weight:700;text-wrap:balance}
+.action-copy span{font-size:0.76rem;color:var(--text3);text-wrap:pretty}
 .btn-main{
-  min-width:260px;
+  width:100%;
+  min-width:0;
   justify-content:center;
   font-size:0.95rem;
   padding:14px 22px;
@@ -504,7 +517,7 @@ body::before{
 
 /* Status bar */
 .status-bar{
-  display:flex;
+  display:none;
   align-items:center;
   gap:12px;
   padding:8px 28px;
@@ -516,11 +529,10 @@ body::before{
 }
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--text3)}
 .status-dot.ready{background:var(--green)}
-.status-dot.processing{background:var(--amber);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.status-dot.processing{background:var(--amber)}
 
 /* Toast */
-.toast-container{position:fixed;top:72px;right:24px;z-index:1000;display:flex;flex-direction:column;gap:8px}
+.toast-container{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:40;display:flex;flex-direction:column;gap:8px}
 .toast{
   background:var(--surface3);
   border:1px solid var(--border-light);
@@ -529,7 +541,6 @@ body::before{
   font-size:0.82rem;
   font-weight:500;
   box-shadow:var(--shadow);
-  animation:slideIn 250ms cubic-bezier(0.4,0,0.2,1);
   display:flex;
   align-items:center;
   gap:10px;
@@ -545,12 +556,10 @@ body::before{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,0.7);
-  z-index:500;
+  z-index:50;
   display:flex;
   align-items:center;
   justify-content:center;
-  backdrop-filter:blur(4px);
-  animation:fadeIn 150ms ease;
 }
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{
@@ -561,7 +570,6 @@ body::before{
   width:90%;
   max-width:420px;
   box-shadow:0 20px 60px rgba(0,0,0,0.5);
-  animation:modalIn 250ms cubic-bezier(0.4,0,0.2,1);
 }
 @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .modal h3{font-size:1rem;font-weight:700;margin-bottom:16px}
@@ -576,7 +584,7 @@ body::before{
   font-family:inherit;
   font-size:0.85rem;
 }
-.modal input[type="text"]:focus{outline:none;border-color:var(--red)}
+.modal input[type="text"]:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-color:var(--red)}
 .modal input[type="file"]{padding:8px;cursor:pointer}
 .modal input[type="file"]::file-selector-button{
   background:var(--surface3);
@@ -596,15 +604,30 @@ body::before{
 /* Responsive */
 @media(max-width:1080px){
   .workspace.active{grid-template-columns:1fr}
-  .editor-card{grid-template-columns:1fr}
-  .canvas-wrapper{width:min(100%,480px)}
+  .main-content{padding-bottom:118px}
+  .canvas-wrapper{width:min(100%,560px,calc((100dvh - 230px) * 0.7727))}
+  .action-bar{
+    position:fixed;
+    left:22px;
+    right:22px;
+    bottom:calc(18px + env(safe-area-inset-bottom));
+    margin:0 auto;
+    max-width:980px;
+    flex-direction:row;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .action-summary{min-width:220px;width:auto}
+  .btn-main{width:auto;min-width:260px}
 }
 @media(max-width:860px){
   .app-layout{height:auto;min-height:calc(100vh - 82px)}
   .app-layout{grid-template-columns:1fr}
   .sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:200px}
   .main-content{overflow:visible}
-  .canvas-wrapper{width:min(100%,420px)}
+  .canvas-wrapper{width:min(100%,430px)}
+  .action-bar{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:none}
   .action-bar{align-items:stretch}
   .action-summary,.btn-main{width:100%}
 }
@@ -613,7 +636,7 @@ body::before{
   .main-content{padding:16px}
   .action-bar{flex-direction:column}
   .btn{justify-content:center}
-  .toast-container{top:auto;left:12px;right:12px;bottom:12px}
+  .toast-container{top:auto;left:12px;right:12px;bottom:12px;transform:none}
   .toast{max-width:none;padding:10px 12px}
 }
 </style>
@@ -624,7 +647,7 @@ body::before{
   <div class="logo">SelloGuía <mark>beta</mark></div>
   <div class="header-right">
     <span class="page-count" id="pageCount">0 págs</span>
-    <button class="btn-icon" onclick="resetAll()" title="Nuevo">⟳</button>
+    <button class="btn-icon" onclick="resetAll()" title="Nuevo" aria-label="Nueva guía">⟳</button>
   </div>
 </header>
 
@@ -632,7 +655,7 @@ body::before{
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <h2>Biblioteca de Timbres</h2>
-      <button class="btn-icon" onclick="openAddStampModal()" title="Agregar timbre">+</button>
+      <button class="btn-icon" onclick="openAddStampModal()" title="Agregar timbre" aria-label="Agregar timbre">+</button>
     </div>
     <div class="stamp-list" id="stampList">
       <div class="sidebar-empty">
@@ -643,19 +666,19 @@ body::before{
   </aside>
 
   <main class="main-content" id="mainContent">
-    <div class="upload-zone" id="uploadZone" onclick="openPdfPicker()" role="button" tabindex="0" onkeydown="handleUploadZoneKeydown(event)">
-      <button class="upload-icon" type="button" onclick="openPdfPicker(event)" aria-label="Seleccionar PDF">📄</button>
+    <button class="upload-zone" id="uploadZone" type="button" onclick="openPdfPicker()" aria-label="Seleccionar PDF">
+      <span class="upload-icon" aria-hidden="true">📄</span>
       <h3>Carga tu guía de despacho</h3>
       <p>Arrastra un archivo PDF o haz clic para seleccionarlo</p>
       <span class="upload-hint">PDF hasta 50 MB · Múltiples páginas</span>
-    </div>
+    </button>
 
     <div class="workspace" id="workspace">
       <div class="workspace-toolbar">
         <div class="file-badge" id="fileBadge">
           <span class="name">--</span>
           <span class="pages">·</span>
-          <span class="close" onclick="resetAll()">✕</span>
+          <button class="close" type="button" onclick="resetAll()" aria-label="Quitar guía">✕</button>
         </div>
         <div class="live-time" id="liveTime">
           <span class="label">Hora actual</span>
@@ -678,7 +701,7 @@ body::before{
 
       <div class="action-bar">
         <div class="action-summary">
-          <span class="status-icon" id="actionIcon">📄</span>
+          <span class="status-icon" id="actionIcon" aria-hidden="true">📄</span>
           <div class="action-copy">
             <strong id="actionTitle">PDF cargado</strong>
             <span id="actionHint">Revisa la posición y aplica el sello.</span>
@@ -696,18 +719,18 @@ body::before{
 </footer>
 
 <input type="file" id="fileInput" accept=".pdf" hidden onchange="handleFileSelect(event)">
-<div class="toast-container" id="toastContainer"></div>
+<div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
-<div class="modal-overlay" id="stampModal" style="display:none" onclick="if(event.target===this)closeAddStampModal()">
+<div class="modal-overlay" id="stampModal" style="display:none" onclick="if(event.target===this)closeAddStampModal()" role="dialog" aria-modal="true" aria-labelledby="stampModalTitle">
   <div class="modal">
-    <h3>Agregar Nuevo Timbre</h3>
+    <h3 id="stampModalTitle">Agregar Nuevo Timbre</h3>
     <div class="form-group">
-      <label>Nombre de la persona</label>
-      <input type="text" id="stampNameInput" placeholder="Ej: Juan Pérez" autocomplete="off">
+      <label for="stampNameInput">Nombre de la persona</label>
+      <input type="text" id="stampNameInput" name="stampName" placeholder="Ej: Juan Pérez…" autocomplete="off">
     </div>
     <div class="form-group">
-      <label>Imagen del timbre (PNG, JPG)</label>
-      <input type="file" id="stampFileInput" accept="image/png,image/jpeg,image/webp">
+      <label for="stampFileInput">Imagen del timbre (PNG, JPG)</label>
+      <input type="file" id="stampFileInput" name="stampImage" accept="image/png,image/jpeg,image/webp">
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost btn-sm" onclick="closeAddStampModal()">Cancelar</button>
@@ -916,7 +939,6 @@ function applyGuidePreset() {
   markPdfNeedsApply();
   drawMarkers();
   saveSettings();
-  toast('Posición restablecida', 'success');
 }
 
 // ─── Page rendering ───────────────────────────────────────
@@ -928,23 +950,32 @@ async function renderPageToCanvas() {
   }
   try {
     await new Promise(r => requestAnimationFrame(r));
-    let w = canvasWrapper.clientWidth - 20;
-    if (!w || w < 50) { await new Promise(r => setTimeout(r, 150)); w = canvasWrapper.clientWidth - 20; }
+    let w = canvasWrapper.clientWidth - 24;
+    if (!w || w < 50) { await new Promise(r => setTimeout(r, 150)); w = canvasWrapper.clientWidth - 24; }
     if (!w || w < 50) { toast('No se pudo determinar el ancho del visor', 'error'); return; }
 
     const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(state.pdfBytes) }).promise;
     const page = await pdfDoc.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
-    const maxPreviewHeight = Math.min(window.innerHeight * 0.58, 620);
+    const maxPreviewHeight = Math.min(window.innerHeight * 0.74, 720);
     const scale = Math.min(Math.min(w, 980) / viewport.width, maxPreviewHeight / viewport.height);
     const sv = page.getViewport({ scale });
+    const outputScale = Math.min(window.devicePixelRatio || 1, 2);
 
-    pageCanvas.width = sv.width;
-    pageCanvas.height = sv.height;
-    markerCanvas.width = sv.width;
-    markerCanvas.height = sv.height;
+    pageCanvas.width = Math.floor(sv.width * outputScale);
+    pageCanvas.height = Math.floor(sv.height * outputScale);
+    pageCanvas.style.width = Math.floor(sv.width) + 'px';
+    pageCanvas.style.height = Math.floor(sv.height) + 'px';
+    markerCanvas.width = pageCanvas.width;
+    markerCanvas.height = pageCanvas.height;
+    markerCanvas.style.width = pageCanvas.style.width;
+    markerCanvas.style.height = pageCanvas.style.height;
 
-    await page.render({ canvasContext: pctx, viewport: sv }).promise;
+    await page.render({
+      canvasContext: pctx,
+      viewport: sv,
+      transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null,
+    }).promise;
     drawMarkers();
   } catch (err) {
     console.error('Render error:', err);
@@ -966,13 +997,8 @@ function drawMarkers() {
     mctx.globalAlpha = 0.92;
     mctx.drawImage(stampImage, scx, scy, sw, sh);
     mctx.globalAlpha = 1;
-    mctx.strokeStyle = 'rgba(232,17,27,0.95)';
-    mctx.lineWidth = 1.5;
-    mctx.strokeRect(scx, scy, sw, sh);
   } else {
-    mctx.strokeStyle = '#e8111b'; mctx.lineWidth = 2.5; mctx.setLineDash([6, 3]);
-    mctx.strokeRect(scx, scy, sw, sh); mctx.setLineDash([]);
-    mctx.fillStyle = 'rgba(232,17,27,0.15)';
+    mctx.fillStyle = 'rgba(232,17,27,0.08)';
     mctx.fillRect(scx, scy, sw, sh);
     mctx.fillStyle = '#e8111b'; mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
     mctx.textAlign = 'left'; mctx.fillText('TIMBRE', scx, Math.max(12, scy - 7));
@@ -983,28 +1009,13 @@ function drawMarkers() {
   const tcx = timeCanvasX(), tcy = timeCanvasY();
   const timeLabel = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
   const timeFontSize = timePreviewFontSize();
-  const timeSize = timeMarkerSize();
   mctx.save();
   mctx.font = '800 ' + timeFontSize + 'px "DM Mono", ui-monospace, monospace';
   mctx.textAlign = 'left';
   mctx.textBaseline = 'top';
   mctx.fillStyle = '#050505';
   mctx.fillText(timeLabel, tcx, tcy);
-  mctx.strokeStyle = 'rgba(59,130,246,0.62)';
-  mctx.lineWidth = 1.25;
-  mctx.setLineDash([4, 3]);
-  mctx.strokeRect(tcx - 3, tcy - 3, timeSize.w + 6, timeSize.h + 6);
-  mctx.setLineDash([]);
   mctx.restore();
-
-  // Crosshairs
-  [scx, tcx].forEach((cx, i) => {
-    const cy = i === 0 ? scy : tcy;
-    const color = i === 0 ? '#e8111b' : '#3b82f6';
-    mctx.save(); mctx.strokeStyle = color; mctx.lineWidth = 1; mctx.globalAlpha = 0.6; mctx.beginPath();
-    mctx.moveTo(cx - 6, cy); mctx.lineTo(cx + 6, cy);
-    mctx.moveTo(cx, cy - 6); mctx.lineTo(cx, cy + 6); mctx.stroke(); mctx.restore();
-  });
 }
 
 // Resize
@@ -1037,12 +1048,6 @@ function formatTime(date, fmt) {
 function openPdfPicker(event) {
   if (event) event.stopPropagation();
   $('fileInput').click();
-}
-
-function handleUploadZoneKeydown(event) {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  event.preventDefault();
-  openPdfPicker();
 }
 
 async function handleFileSelect(e) {
@@ -1085,7 +1090,6 @@ async function loadPdf(file) {
     state.readyToPrint = false;
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' páginas');
-    toast('PDF cargado correctamente', 'success');
     if (!state.selectedStampId) {
       toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
     }
@@ -1147,7 +1151,6 @@ async function applyStamps() {
     state.readyToPrint = true;
     updateApplyButton();
     setStatus('ready', 'Sellos aplicados — listo para imprimir');
-    toast('¡Sellos aplicados a ' + pages.length + ' páginas!', 'success');
   } catch (err) {
     console.error(err);
     toast('Error al aplicar sellos: ' + err.message, 'error');
@@ -1195,13 +1198,15 @@ function renderStampList() {
     return;
   }
   stampList.innerHTML = state.stampLibrary.map(s => `
-    <div class="stamp-item ${s.id === state.selectedStampId ? 'selected' : ''}" onclick="selectStamp('${s.id}')">
-      <div class="stamp-thumb">${s.dataUrl ? `<img src="${s.dataUrl}" alt="">` : '<span class="placeholder">👤</span>'}</div>
-      <div class="stamp-info">
-        <div class="stamp-name">${escapeHtml(s.name)}</div>
-        <div class="stamp-meta">${s.addedAt || ''}</div>
-      </div>
-      <button class="stamp-delete" onclick="event.stopPropagation();removeStamp('${s.id}')" title="Eliminar">✕</button>
+    <div class="stamp-row">
+      <button class="stamp-item ${s.id === state.selectedStampId ? 'selected' : ''}" type="button" onclick="selectStamp('${s.id}')" aria-label="Seleccionar timbre ${escapeHtml(s.name)}">
+        <div class="stamp-thumb">${s.dataUrl ? `<img src="${s.dataUrl}" alt="">` : '<span class="placeholder" aria-hidden="true">👤</span>'}</div>
+        <div class="stamp-info">
+          <div class="stamp-name">${escapeHtml(s.name)}</div>
+          <div class="stamp-meta">${s.addedAt || ''}</div>
+        </div>
+      </button>
+      <button class="stamp-delete" type="button" onclick="removeStamp('${s.id}')" title="Eliminar" aria-label="Eliminar timbre ${escapeHtml(s.name)}">✕</button>
     </div>`).join('');
   updateApplyButton();
 }
