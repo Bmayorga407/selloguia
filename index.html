@@ -1711,9 +1711,9 @@ async function loadPdf(file) {
     // Render page to canvas
     await renderPageToCanvas();
 
-    updateApplyButton();
     state.modifiedPdfBytes = copyBytes(state.pdfBytes);
     state.readyToPrint = false;
+    updateApplyButton();
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' página' + (pages.length !== 1 ? 's' : ''));
     if (state.materialEnabled) {
@@ -1875,27 +1875,7 @@ function printPdf() {
   const pdfBlob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
   const pdfUrl = URL.createObjectURL(pdfBlob);
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Imprimir Guía</title>
-<style>
-  @page { size: letter; margin: 0; }
-  @media print {
-    body, html { margin: 0; padding: 0; }
-  }
-  body, html { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #fff; }
-  embed { width: 100%; height: 100%; border: none; }
-</style>
-</head>
-<body>
-<embed src="${pdfUrl}" type="application/pdf" width="100%" height="100%">
-<script>
-  window.addEventListener('load', () => setTimeout(() => window.print(), 600));
-</script>
-</body>
-</html>`;
+  const html = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<title>Imprimir Guía</title>\n<style>\n  @page { size: letter; margin: 0; }\n  @media print { body, html { margin: 0; padding: 0; } }\n  body, html { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #fff; }\n  embed { width: 100%; height: 100%; border: none; }\n</style>\n</head>\n<body>\n<embed src="' + pdfUrl + '" type="application/pdf" width="100%" height="100%">\n<script>\n  window.addEventListener("load", () => setTimeout(() => window.print(), 600));\n</scr' + 'ipt>\n</body>\n</html>';
 
   const htmlBlob = new Blob([html], { type: 'text/html' });
   const w = window.open(URL.createObjectURL(htmlBlob), '_blank');
