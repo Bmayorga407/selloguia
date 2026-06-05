@@ -595,6 +595,22 @@ body::before{
 .rotation-control.disabled input[type="range"]{
   cursor:not-allowed;
 }
+.size-control{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface2);
+}
+.size-control.disabled{
+  opacity:0.45;
+}
+.size-control.disabled input[type="range"]{
+  cursor:not-allowed;
+}
 .rotation-label{
   display:flex;
   align-items:center;
@@ -618,6 +634,25 @@ body::before{
   color:var(--text3);
   font-size:0.72rem;
   line-height:1.35;
+}
+.size-label{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:0.78rem;
+  color:var(--text2);
+  font-weight:700;
+}
+.size-label output{
+  font-family:'DM Mono',monospace;
+  color:var(--text3);
+  font-weight:500;
+}
+.size-control input[type="range"]{
+  width:100%;
+  accent-color:var(--red);
+  cursor:pointer;
 }
 .action-bar.ready-to-print .btn-main{
   background:#118b58;
@@ -867,7 +902,7 @@ body::before{
     gap:8px;
   }
   .side-history{display:none}
-  .rotation-control{max-width:220px;min-width:180px;padding:8px}
+  .rotation-control,.size-control{max-width:220px;min-width:180px;padding:8px}
   .action-summary{min-width:220px;width:auto}
   .btn-main{width:auto;min-width:260px}
 }
@@ -879,7 +914,7 @@ body::before{
   .canvas-wrapper{width:min(100%,430px)}
   .action-bar{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));max-width:none}
   .action-bar{align-items:stretch}
-  .action-summary,.btn-main,.rotation-control{width:100%}
+  .action-summary,.btn-main,.rotation-control,.size-control{width:100%}
 }
 @media(max-width:640px){
   .header{padding:0 16px}
@@ -977,6 +1012,14 @@ body::before{
           </label>
           <input id="stampRotationInput" type="range" min="-15" max="15" step="1" value="0" oninput="updateStampRotation(this.value)">
           <div class="rotation-hint">Ajusta el ángulo cuando quieras antes de imprimir.</div>
+        </div>
+        <div class="size-control">
+          <label class="size-label" for="stampSizeInput">
+            Tamaño del timbre
+            <output id="stampSizeValue" for="stampSizeInput">30 mm</output>
+          </label>
+          <input id="stampSizeInput" type="range" min="8" max="70" step="1" value="30" oninput="updateStampSize(this.value)">
+          <div class="size-hint">Cambia el ancho; el alto se ajusta solo.</div>
         </div>
         <div class="side-history">
           <h3>Últimos sellados</h3>
@@ -1098,6 +1141,8 @@ const timeToggle = $('timeToggle');
 const materialToggle = $('materialToggle');
 const stampRotationInput = $('stampRotationInput');
 const stampRotationValue = $('stampRotationValue');
+const stampSizeInput = $('stampSizeInput');
+const stampSizeValue = $('stampSizeValue');
 const toastContainer = $('toastContainer');
 const historyList = $('historyList');
 const sideHistoryList = $('sideHistoryList');
@@ -1405,8 +1450,11 @@ function syncInputsFromState() {
   }
   if (stampRotationInput) stampRotationInput.value = state.stampRotation || 0;
   if (stampRotationValue) stampRotationValue.textContent = (state.stampRotation || 0) + '°';
+  if (stampSizeInput) { stampSizeInput.value = state.stampSize.w; stampSizeInput.disabled = !state.stampEnabled; }
+  if (stampSizeValue) stampSizeValue.textContent = state.stampSize.w + ' mm';
   document.querySelector('.rotation-control')?.classList.toggle('disabled', !state.stampEnabled);
   if (stampRotationInput) stampRotationInput.disabled = !state.stampEnabled;
+  document.querySelector('.size-control')?.classList.toggle('disabled', !state.stampEnabled);
   updateApplyButton();
 }
 
@@ -1424,10 +1472,14 @@ function toggleMarker(which) {
   if (pageCanvas.width) drawMarkers();
 }
 
-function updateStampRotation(value) {
+function updateStampSize(value) {
   if (!state.stampEnabled) return;
-  state.stampRotation = Math.max(-15, Math.min(15, Number(value) || 0));
-  if (stampRotationValue) stampRotationValue.textContent = state.stampRotation + '°';
+  const v = Math.max(8, Math.min(70, Number(value) || 30));
+  state.stampSize.w = v;
+  const s = selectedStamp();
+  state.stampSize.h = v * (s ? s.natH / s.natW : 1);
+  if (stampSizeValue) stampSizeValue.textContent = v + ' mm';
+  clampMarkerPositions();
   markPdfNeedsApply();
   saveSettings();
   if (pageCanvas.width) drawMarkers();
