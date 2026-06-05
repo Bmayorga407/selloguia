@@ -1115,7 +1115,8 @@ const HISTORY_STORE = 'pdfs';
 const HISTORY_LIMIT = 10;
 const TIME_FONT_SIZE_PT = 12;
 const MATERIAL_FONT_SIZE_PT = 6.7;
-const MATERIAL_ROW_GAP_PT = 13;
+const MATERIAL_ROW_GAP_PT = 9;
+const MATERIAL_EXTRA_GAP_AFTER_2 = 18;
 const MATERIAL_DISPATCH_OFFSET_MM = 9.9;
 const MATERIAL_CODE_OFFSET_MM = 22.2;
 const MATERIAL_ROWS = [
@@ -1363,7 +1364,7 @@ function materialBlockBoundsCanvas() {
     x: anchorX - articleWidth - 6,
     y: anchorY - metrics.fontSize,
     w: articleWidth + metrics.codeOffset + codeWidth + 12,
-    h: metrics.fontSize + metrics.rowGap + 6,
+    h: metrics.fontSize + metrics.rowGap + (MATERIAL_EXTRA_GAP_AFTER_2 * (pageCanvas.height / state.pageHeight)) + 6,
     anchorX,
     anchorY,
   };
@@ -1597,7 +1598,8 @@ function drawMaterialPreview() {
   mctx.textBaseline = 'alphabetic';
   mctx.fillStyle = '#050505';
   MATERIAL_ROWS.forEach((row, index) => {
-    const y = anchorY + index * metrics.rowGap;
+    const extra = index >= 2 ? MATERIAL_EXTRA_GAP_AFTER_2 : 0;
+    const y = anchorY + index * metrics.rowGap + extra;
     mctx.textAlign = 'right';
     mctx.fillText(row.article, anchorX, y);
     mctx.textAlign = 'center';
@@ -1836,7 +1838,8 @@ function drawMaterialOnPdfPage(page, font, pageHeight) {
   const dispatchX = articleRightX + (MATERIAL_DISPATCH_OFFSET_MM * PT_PER_MM);
   const codeX = articleRightX + (MATERIAL_CODE_OFFSET_MM * PT_PER_MM);
   MATERIAL_ROWS.forEach((row, index) => {
-    const y = firstBaselineY - (index * MATERIAL_ROW_GAP_PT);
+    const extra = index >= 2 ? MATERIAL_EXTRA_GAP_AFTER_2 : 0;
+    const y = firstBaselineY - (index * MATERIAL_ROW_GAP_PT) - extra;
     page.drawText(row.article, {
       x: articleRightX - font.widthOfTextAtSize(row.article, MATERIAL_FONT_SIZE_PT),
       y,
