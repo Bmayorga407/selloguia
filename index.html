@@ -2227,7 +2227,7 @@ function updateApplyButton() {
     return;
   }
   if (!hasAnyMarker) {
-    btnApply.textContent = state.materialEnabled ? 'Sin camiones detectados' : 'Activa timbre, hora o material';
+    btnApply.textContent = state.materialEnabled ? 'Sin camiones' : 'Activa algo';
     actionIcon.textContent = '○';
     actionTitle.textContent = state.materialEnabled ? 'Material sin destino' : 'Nada seleccionado';
     actionHint.textContent = state.materialEnabled ? 'No encontré primeras hojas de camión en este PDF.' : 'Activa al menos un elemento para aplicar.';
@@ -2250,14 +2250,14 @@ function updateApplyButton() {
   const parts = [];
   if (state.stampEnabled) parts.push(state.doubleStamp ? '2 sellos' : 'sello');
   if (state.timeEnabled) parts.push('hora');
-  if (hasMaterialTargets) parts.push('material operativo');
+  if (hasMaterialTargets) parts.push('material');
   const label = parts.join(', ').replace(/, ([^,]*)$/, ' y $1');
-  btnApply.textContent = '✦ Aplicar ' + label + ' a ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '');
+  btnApply.textContent = hasMaterialTargets && parts.length === 1 ? '✦ Aplicar material' : '✦ Aplicar cambios';
   actionIcon.textContent = '✦';
   actionTitle.textContent = 'Lista para aplicar';
   actionHint.textContent = hasMaterialTargets
-    ? 'Material operativo en ' + state.materialPages.length + ' primera' + (state.materialPages.length !== 1 ? 's' : '') + ' hoja' + (state.materialPages.length !== 1 ? 's' : '') + ' de camión.'
-    : 'Revisa la posición y aplica los cambios.';
+    ? label + ' · ' + state.materialPages.length + ' primera' + (state.materialPages.length !== 1 ? 's' : '') + ' hoja' + (state.materialPages.length !== 1 ? 's' : '') + ' de camión.'
+    : 'Aplicará ' + label + ' en ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '') + '.';
 }
 
 // ─── Reset ────────────────────────────────────────────────
