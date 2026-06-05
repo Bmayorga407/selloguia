@@ -1103,7 +1103,6 @@ const state = {
   timePosition: { x: 74, y: 236 },
   timeFormat: 'HH:mm',
   readyToPrint: false,
-  canvasScale: 1,
   _loading: false,
 };
 
@@ -1514,7 +1513,6 @@ async function renderPageToCanvas() {
     const page = await pdfDoc.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
     const scale = Math.min(w, 980) / viewport.width;
-    state.canvasScale = scale;
     const sv = page.getViewport({ scale });
     const outputScale = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -1773,11 +1771,10 @@ async function applyStamps() {
     const font = (state.timeEnabled || state.materialEnabled) ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
     const now = new Date();
     const timeStr = formatTime(now, state.timeFormat);
-    const s = state.canvasScale || 1;
-    const fontSize = TIME_FONT_SIZE_PT * s;
-    const materialFontSize = MATERIAL_FONT_SIZE_PT * s;
-    const materialRowGap = MATERIAL_ROW_GAP_PT * s;
-    const materialExtraGap = MATERIAL_EXTRA_GAP_AFTER_2 * s;
+    const fontSize = TIME_FONT_SIZE_PT;
+    const materialFontSize = MATERIAL_FONT_SIZE_PT;
+    const materialRowGap = MATERIAL_ROW_GAP_PT;
+    const materialExtraGap = MATERIAL_EXTRA_GAP_AFTER_2;
 
     const stampWpt = state.stampEnabled ? state.stampSize.w * PT_PER_MM : 0;
     const stampHpt = state.stampEnabled ? stampWpt * (stamp.natH / stamp.natW) : 0;
