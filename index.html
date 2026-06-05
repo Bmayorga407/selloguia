@@ -232,6 +232,22 @@ body::before{
   color:var(--text3);
   margin-top:2px;
 }
+.stamp-template-note{
+  margin-top:auto;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fff;
+  color:var(--text3);
+  font-size:0.78rem;
+  line-height:1.45;
+}
+.stamp-template-note strong{
+  display:block;
+  color:var(--text);
+  font-size:0.84rem;
+  margin-bottom:3px;
+}
 .stamp-delete{
   position:absolute;
   top:6px;
@@ -395,30 +411,30 @@ body::before{
   --page-aspect:0.7727;
   width:min(100%,760px,calc((100dvh - 226px) * var(--page-aspect)));
   aspect-ratio:var(--page-aspect);
-  border-radius:18px;
+  border-radius:8px;
   overflow:hidden;
-  border:1px solid var(--border-light);
-  background:#e9edf3;
-  box-shadow:0 22px 56px rgba(20,24,32,0.16);
+  border:0;
+  background:transparent;
+  box-shadow:0 18px 42px rgba(20,24,32,0.16);
   user-select:none;
   line-height:0;
   align-self:center;
   justify-self:center;
-  padding:14px;
+  padding:0;
   margin:auto;
 }
 .canvas-wrapper canvas{
   display:block;
   width:100%;
   height:auto;
-  border-radius:6px;
+  border-radius:8px;
   box-shadow:0 8px 24px rgba(20,24,32,0.18);
 }
 .canvas-wrapper canvas:last-child{
   position:absolute;
-  top:14px;
-  left:14px;
-  width:calc(100% - 28px);
+  top:0;
+  left:0;
+  width:100%;
   height:auto;
   box-shadow:none;
 }
@@ -480,6 +496,10 @@ body::before{
   padding:16px;
   box-shadow:0 18px 48px rgba(20,24,32,0.08);
 }
+.action-bar.ready-to-print{
+  border-color:rgba(17,139,88,0.35);
+  box-shadow:0 18px 48px rgba(17,139,88,0.10);
+}
 .action-summary{
   display:flex;
   align-items:center;
@@ -496,6 +516,13 @@ body::before{
   justify-content:center;
   background:var(--surface2);
   border:1px solid var(--border);
+  transition:background-color var(--transition),border-color var(--transition),color var(--transition),transform var(--transition);
+}
+.action-bar.ready-to-print .status-icon{
+  background:#e8f7ef;
+  border-color:#b7e7cc;
+  color:var(--green);
+  transform:scale(1.04);
 }
 .action-copy{display:flex;flex-direction:column;gap:3px}
 .action-copy strong{font-size:0.96rem;font-weight:700;text-wrap:balance}
@@ -507,6 +534,84 @@ body::before{
   font-size:0.95rem;
   padding:14px 22px;
   border-radius:14px;
+}
+.action-bar.ready-to-print .btn-main{
+  background:#118b58;
+  color:#fff;
+  border:1px solid #0f7a4d;
+  box-shadow:0 10px 22px rgba(17,139,88,0.20);
+}
+.side-history{
+  width:100%;
+  border-top:1px solid var(--border);
+  padding-top:14px;
+  margin-top:2px;
+}
+.side-history h3{
+  font-size:0.74rem;
+  font-weight:700;
+  color:var(--text3);
+  text-transform:uppercase;
+  letter-spacing:0;
+  margin-bottom:10px;
+}
+.side-history-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:calc(100dvh - 310px);
+  overflow:auto;
+  padding-right:2px;
+}
+.side-history-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface2);
+  color:var(--text);
+  text-align:left;
+  font:inherit;
+  cursor:pointer;
+  transition:background-color var(--transition),border-color var(--transition),transform var(--transition);
+}
+.side-history-item:hover{
+  background:#fff;
+  border-color:var(--border-light);
+  transform:translateY(-1px);
+}
+.side-history-info{min-width:0;display:flex;flex-direction:column;gap:3px}
+.side-history-info strong{
+  font-size:0.78rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.side-history-info span{
+  font-family:'DM Mono',monospace;
+  font-size:0.66rem;
+  color:var(--text3);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.side-history-print{
+  flex-shrink:0;
+  color:var(--text3);
+  font-size:0.9rem;
+}
+.side-history-empty{
+  padding:12px;
+  border:1px dashed var(--border);
+  border-radius:12px;
+  color:var(--text3);
+  font-size:0.78rem;
+  line-height:1.45;
+  background:var(--surface2);
 }
 
 /* Settings */
@@ -592,6 +697,42 @@ body::before{
   font-family:inherit;
   font-size:0.85rem;
 }
+.modal-help{
+  color:var(--text3);
+  font-size:0.8rem;
+  line-height:1.45;
+  margin:-6px 0 16px;
+}
+.template-preview{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface2);
+  margin-bottom:14px;
+}
+.template-stamp{
+  width:96px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:3px solid var(--red);
+  border-radius:4px;
+  color:var(--red);
+  font-size:0.62rem;
+  font-weight:800;
+  text-align:center;
+  line-height:1.05;
+  background:#fff;
+}
+.template-preview p{
+  color:var(--text3);
+  font-size:0.78rem;
+  line-height:1.45;
+}
 .modal input[type="text"]:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-color:var(--red)}
 .modal input[type="file"]{padding:8px;cursor:pointer}
 .modal input[type="file"]::file-selector-button{
@@ -641,6 +782,7 @@ body::before{
     justify-content:space-between;
     gap:8px;
   }
+  .side-history{display:none}
   .action-summary{min-width:220px;width:auto}
   .btn-main{width:auto;min-width:260px}
 }
@@ -687,6 +829,10 @@ body::before{
         <p>No hay timbres aún.<br>Agrega el primero con el botón +</p>
       </div>
     </div>
+    <div class="stamp-template-note">
+      <strong>Nuevo flujo</strong>
+      Escribe un nombre y SelloGuía crea el timbre automáticamente.
+    </div>
   </aside>
 
   <main class="main-content" id="mainContent">
@@ -731,6 +877,12 @@ body::before{
           </div>
         </div>
         <button class="btn btn-primary btn-main" id="btnApply" onclick="handlePrimaryAction()" disabled>✦ Aplicar sello</button>
+        <div class="side-history">
+          <h3>Últimos sellados</h3>
+          <div class="side-history-list" id="sideHistoryList">
+            <div class="side-history-empty">Aquí aparecerán los últimos 10 PDFs sellados en este equipo.</div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -746,18 +898,23 @@ body::before{
 
 <div class="modal-overlay" id="stampModal" style="display:none" onclick="if(event.target===this)closeAddStampModal()" role="dialog" aria-modal="true" aria-labelledby="stampModalTitle">
   <div class="modal">
-    <h3 id="stampModalTitle">Agregar Nuevo Timbre</h3>
+    <h3 id="stampModalTitle">Crear Timbre</h3>
+    <p class="modal-help">Escribe el nombre y la app genera un timbre listo para usar. La imagen propia es opcional.</p>
+    <div class="template-preview" aria-hidden="true">
+      <div class="template-stamp">ENTREGADO<br>NOMBRE</div>
+      <p>Plantilla base con el nombre centrado dentro del sello.</p>
+    </div>
     <div class="form-group">
       <label for="stampNameInput">Nombre de la persona</label>
       <input type="text" id="stampNameInput" name="stampName" placeholder="Ej: Juan Pérez…" autocomplete="off">
     </div>
     <div class="form-group">
-      <label for="stampFileInput">Imagen del timbre (PNG, JPG)</label>
+      <label for="stampFileInput">Imagen propia opcional (PNG, JPG)</label>
       <input type="file" id="stampFileInput" name="stampImage" accept="image/png,image/jpeg,image/webp">
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost btn-sm" onclick="closeAddStampModal()">Cancelar</button>
-      <button class="btn btn-primary btn-sm" onclick="saveNewStamp()">Guardar Timbre</button>
+      <button class="btn btn-primary btn-sm" onclick="saveNewStamp()">Crear Timbre</button>
     </div>
   </div>
 </div>
@@ -819,6 +976,7 @@ const actionTitle = $('actionTitle');
 const actionHint = $('actionHint');
 const toastContainer = $('toastContainer');
 const historyList = $('historyList');
+const sideHistoryList = $('sideHistoryList');
 const pageCanvas = $('pageCanvas');
 const markerCanvas = $('markerCanvas');
 const canvasWrapper = $('canvasWrapper');
@@ -840,6 +998,7 @@ loadSettings();
 updateClock();
 setInterval(updateClock, 1000);
 syncInputsFromState();
+renderSideHistory();
 
 // ─── Drag & drop ──────────────────────────────────────────
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
@@ -1004,15 +1163,14 @@ async function renderPageToCanvas() {
   }
   try {
     await new Promise(r => requestAnimationFrame(r));
-    let w = canvasWrapper.clientWidth - 24;
-    if (!w || w < 50) { await new Promise(r => setTimeout(r, 150)); w = canvasWrapper.clientWidth - 24; }
+    let w = canvasWrapper.clientWidth;
+    if (!w || w < 50) { await new Promise(r => setTimeout(r, 150)); w = canvasWrapper.clientWidth; }
     if (!w || w < 50) { toast('No se pudo determinar el ancho del visor', 'error'); return; }
 
     const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(state.pdfBytes) }).promise;
     const page = await pdfDoc.getPage(1);
     const viewport = page.getViewport({ scale: 1 });
-    const maxPreviewHeight = Math.min(window.innerHeight * 0.62, 660);
-    const scale = Math.min(Math.min(w, 980) / viewport.width, maxPreviewHeight / viewport.height);
+    const scale = Math.min(w, 980) / viewport.width;
     const sv = page.getViewport({ scale });
     const outputScale = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -1207,6 +1365,7 @@ async function applyStamps() {
     state.modifiedPdfBytes = await pdfDoc.save();
     state.readyToPrint = true;
     await saveToHistory(state.modifiedPdfBytes);
+    await renderSideHistory();
     updateApplyButton();
     setStatus('ready', 'Sellos aplicados — listo para imprimir');
   } catch (err) {
@@ -1223,6 +1382,7 @@ function printPdf() {
   const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
   const w = window.open(URL.createObjectURL(blob), '_blank');
   if (w) w.addEventListener('load', () => w.print());
+  toast('PDF listo para imprimir', 'success');
 }
 
 function openHistoryDb() {
@@ -1255,6 +1415,7 @@ async function saveToHistory(bytes) {
       id: 'pdf_' + Date.now(),
       name: state.currentFileName || 'guia_sellada.pdf',
       pageCount: state.pageCount,
+      stampName: selectedStamp()?.name || 'Timbre',
       createdAt: Date.now(),
       bytes: copyBytes(bytes),
     };
@@ -1288,13 +1449,35 @@ async function openHistoryModal() {
       <div class="history-item">
         <div class="history-info">
           <strong>${escapeHtml(item.name)}</strong>
-          <span>${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
+          <span>${escapeHtml(item.stampName || 'Timbre')} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
         </div>
         <button class="btn btn-secondary btn-sm" type="button" onclick="printHistoryPdf('${item.id}')">Imprimir</button>
       </div>
     `).join('');
   } catch (err) {
     historyList.innerHTML = '<div class="history-empty">No se pudo abrir el historial local.</div>';
+  }
+}
+
+async function renderSideHistory() {
+  if (!sideHistoryList) return;
+  try {
+    const items = await historyAll();
+    if (!items.length) {
+      sideHistoryList.innerHTML = '<div class="side-history-empty">Aquí aparecerán los últimos 10 PDFs sellados en este equipo.</div>';
+      return;
+    }
+    sideHistoryList.innerHTML = items.map(item => `
+      <button class="side-history-item" type="button" onclick="printHistoryPdf('${item.id}')" aria-label="Imprimir ${escapeHtml(item.name)}">
+        <span class="side-history-info">
+          <strong>${escapeHtml(shortFileName(item.name))}</strong>
+          <span>${escapeHtml(item.stampName || 'Timbre')} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
+        </span>
+        <span class="side-history-print" aria-hidden="true">↗</span>
+      </button>
+    `).join('');
+  } catch (err) {
+    sideHistoryList.innerHTML = '<div class="side-history-empty">No se pudo abrir el historial local.</div>';
   }
 }
 
@@ -1323,7 +1506,11 @@ async function printHistoryPdf(id) {
 
 function formatHistoryDate(value) {
   const date = new Date(value);
-  return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return day + '/' + month + ' ' + hour + ':' + minute;
 }
 
 // ─── Stamp Library ────────────────────────────────────────
@@ -1404,7 +1591,21 @@ function saveNewStamp() {
   const name = $('stampNameInput').value.trim();
   const file = $('stampFileInput').files[0];
   if (!name) { toast('Ingresa un nombre', 'error'); return; }
-  if (!file) { toast('Selecciona una imagen', 'error'); return; }
+  if (!file) {
+    const dataUrl = createTemplateStamp(name);
+    addStampToLibrary({
+      id: 's_' + Date.now(),
+      name: name,
+      dataUrl: dataUrl,
+      natW: 560,
+      natH: 220,
+      addedAt: formatTime(new Date(), 'dd/MM/yyyy'),
+      generated: true,
+    });
+    closeAddStampModal();
+    toast('Timbre de ' + name + ' creado', 'success');
+    return;
+  }
   if (file.size > 2 * 1024 * 1024) { toast('La imagen no debe superar 2 MB', 'error'); return; }
 
   const reader = new FileReader();
@@ -1420,21 +1621,15 @@ function saveNewStamp() {
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         dataUrl = c.toDataURL('image/png');
       }
-      const stamp = {
+      addStampToLibrary({
         id: 's_' + Date.now(),
         name: name,
         dataUrl: dataUrl,
         natW: img.width,
         natH: img.height,
         addedAt: formatTime(new Date(), 'dd/MM/yyyy'),
-      };
-      state.stampLibrary.push(stamp);
-      state.selectedStampId = stamp.id;
-      state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
-      markPdfNeedsApply();
-      saveStampLibrary();
-      renderStampList();
-      if (pageCanvas.width) drawMarkers();
+        generated: false,
+      });
       closeAddStampModal();
       toast('Timbre de ' + name + ' agregado', 'success');
     };
@@ -1443,9 +1638,54 @@ function saveNewStamp() {
   reader.readAsDataURL(file);
 }
 
+function addStampToLibrary(stamp) {
+  state.stampLibrary.push(stamp);
+  state.selectedStampId = stamp.id;
+  state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
+  clampMarkerPositions();
+  markPdfNeedsApply();
+  saveStampLibrary();
+  renderStampList();
+  if (pageCanvas.width) drawMarkers();
+}
+
+function createTemplateStamp(name) {
+  const c = document.createElement('canvas');
+  c.width = 560;
+  c.height = 220;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#c8141d';
+  ctx.lineWidth = 13;
+  ctx.lineJoin = 'round';
+  ctx.strokeRect(18, 18, c.width - 36, c.height - 36);
+  ctx.strokeRect(34, 34, c.width - 68, c.height - 68);
+  ctx.fillStyle = '#c8141d';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '800 42px Arial, sans-serif';
+  ctx.fillText('ENTREGADO', c.width / 2, 76);
+  ctx.font = fitCanvasText(ctx, name.toUpperCase(), 410, 40, 24);
+  ctx.fillText(name.toUpperCase(), c.width / 2, 128);
+  ctx.font = '700 23px Arial, sans-serif';
+  ctx.fillText('SELLOGUIA', c.width / 2, 166);
+  return c.toDataURL('image/png');
+}
+
+function fitCanvasText(ctx, text, maxWidth, startSize, minSize) {
+  let size = startSize;
+  do {
+    ctx.font = '800 ' + size + 'px Arial, sans-serif';
+    if (ctx.measureText(text).width <= maxWidth) return ctx.font;
+    size -= 2;
+  } while (size >= minSize);
+  return ctx.font;
+}
+
 function updateApplyButton() {
   const hasPdf = Boolean(state.pdfDoc);
   const hasStamp = Boolean(state.selectedStampId);
+  document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && hasPdf && hasStamp));
   btnApply.disabled = !(hasPdf && hasStamp);
   if (!hasPdf) {
     btnApply.textContent = '✦ Aplicar sello';
@@ -1465,7 +1705,7 @@ function updateApplyButton() {
     btnApply.textContent = '🖨 Imprimir guía';
     actionIcon.textContent = '✓';
     actionTitle.textContent = 'Lista para imprimir';
-    actionHint.textContent = 'El sello y la hora ya fueron aplicados.';
+    actionHint.textContent = 'Sellos aplicados. Puedes imprimir ahora.';
     return;
   }
   btnApply.textContent = '✦ Aplicar sello a ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '');
@@ -1522,6 +1762,12 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function shortFileName(name) {
+  const clean = name || 'guia_sellada.pdf';
+  if (clean.length <= 22) return clean;
+  return clean.slice(0, 18) + '…' + clean.split('.').pop();
 }
 
 // Keyboard shortcuts
