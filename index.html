@@ -385,8 +385,9 @@ body::before{
 
 .canvas-wrapper{
   position:relative;
-  width:min(100%,620px,calc((100dvh - 160px) * 0.7727));
-  aspect-ratio:8.5 / 11;
+  --page-aspect:0.7727;
+  width:min(100%,760px,calc((100dvh - 160px) * var(--page-aspect)));
+  aspect-ratio:var(--page-aspect);
   border-radius:14px;
   overflow:hidden;
   border:1px solid var(--border-light);
@@ -600,12 +601,27 @@ body::before{
 }
 .modal input[type="file"]::file-selector-button:hover{background:var(--border)}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.history-list{display:flex;flex-direction:column;gap:10px;max-height:360px;overflow:auto}
+.history-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--surface2);
+}
+.history-info{min-width:0;display:flex;flex-direction:column;gap:4px}
+.history-info strong{font-size:0.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-info span{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--text3)}
+.history-empty{color:var(--text3);font-size:0.85rem;line-height:1.5;padding:18px;text-align:center}
 
 /* Responsive */
 @media(max-width:1080px){
   .workspace.active{grid-template-columns:1fr}
   .main-content{padding-bottom:118px}
-  .canvas-wrapper{width:min(100%,560px,calc((100dvh - 230px) * 0.7727))}
+  .canvas-wrapper{width:min(100%,680px,calc((100dvh - 230px) * var(--page-aspect)))}
   .action-bar{
     position:fixed;
     left:22px;
@@ -647,6 +663,7 @@ body::before{
   <div class="logo">SelloGuía <mark>beta</mark></div>
   <div class="header-right">
     <span class="page-count" id="pageCount">0 págs</span>
+    <button class="btn-icon" onclick="openHistoryModal()" title="Historial" aria-label="Historial de PDFs">◴</button>
     <button class="btn-icon" onclick="resetAll()" title="Nuevo" aria-label="Nueva guía">⟳</button>
   </div>
 </header>
@@ -690,7 +707,6 @@ body::before{
         <div class="editor-card">
           <div class="editor-header">
             <h3>Mueve el timbre o la hora directo sobre la guía</h3>
-            <button class="btn btn-secondary btn-sm" onclick="applyGuidePreset()">Restablecer posición</button>
           </div>
           <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="pageCanvas"></canvas>
@@ -739,6 +755,18 @@ body::before{
   </div>
 </div>
 
+<div class="modal-overlay" id="historyModal" style="display:none" onclick="if(event.target===this)closeHistoryModal()" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
+  <div class="modal">
+    <h3 id="historyModalTitle">Últimos PDFs sellados</h3>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeHistoryModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
@@ -750,6 +778,7 @@ const state = {
   pageCount: 0,
   pageWidth: 0,
   pageHeight: 0,
+  currentFileName: '',
   stampLibrary: [],
   selectedStampId: null,
   stampPosition: { x: 2, y: 232 },
@@ -764,13 +793,10 @@ const PT_PER_MM = 72 / 25.4;
 const DEFAULT_PAGE_POINTS = { width: 612, height: 792 };
 const copyBytes = bytes => new Uint8Array(bytes);
 const SETTINGS_VERSION = 2;
+const HISTORY_DB = 'selloguia_history_db';
+const HISTORY_STORE = 'pdfs';
+const HISTORY_LIMIT = 10;
 const TIME_FONT_SIZE_PT = 12;
-const GUIDE_PRESET = {
-  stampPosition: { x: 2, y: 232 },
-  stampSize: { w: 30, h: 30 },
-  timePosition: { x: 74, y: 236 },
-  timeFormat: 'HH:mm',
-};
 
 // ─── DOM refs ────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -785,6 +811,7 @@ const actionIcon = $('actionIcon');
 const actionTitle = $('actionTitle');
 const actionHint = $('actionHint');
 const toastContainer = $('toastContainer');
+const historyList = $('historyList');
 const pageCanvas = $('pageCanvas');
 const markerCanvas = $('markerCanvas');
 const canvasWrapper = $('canvasWrapper');
@@ -793,6 +820,7 @@ const mctx = markerCanvas.getContext('2d');
 
 // ─── Canvas editor state ─────────────────────────────────
 let draggingMarker = null;
+let dragOffset = { x: 0, y: 0 };
 let stampPreviewImage = null;
 let stampPreviewSource = '';
 
@@ -828,19 +856,28 @@ markerCanvas.addEventListener('mousedown', e => {
   // Check stamp hit area
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
   if (sx > scx - hitPad && sx < scx + sw + hitPad && sy > scy - hitPad && sy < scy + sh + hitPad) {
-    draggingMarker = 'stamp'; markerCanvas.style.cursor = 'grabbing'; e.preventDefault(); return;
+    draggingMarker = 'stamp';
+    dragOffset = { x: sx - scx, y: sy - scy };
+    markerCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+    return;
   }
   // Check time hit area
   const tcx = timeCanvasX(), tcy = timeCanvasY();
   const timeSize = timeMarkerSize();
   if (sx > tcx - hitPad && sx < tcx + timeSize.w + hitPad && sy > tcy - hitPad && sy < tcy + timeSize.h + hitPad) {
-    draggingMarker = 'time'; markerCanvas.style.cursor = 'grabbing'; e.preventDefault(); return;
+    draggingMarker = 'time';
+    dragOffset = { x: sx - tcx, y: sy - tcy };
+    markerCanvas.style.cursor = 'grabbing';
+    e.preventDefault();
+    return;
   }
   // Place the nearest visible marker. This keeps the UI direct, without technical mode buttons.
   const stampDistance = Math.hypot(sx - (scx + sw / 2), sy - (scy + sh / 2));
   const timeDistance = Math.hypot(sx - (tcx + timeSize.w / 2), sy - (tcy + timeSize.h / 2));
   draggingMarker = stampDistance <= timeDistance ? 'stamp' : 'time';
-  setMarkerFromCanvas(sx, sy, draggingMarker);
+  dragOffset = markerSize(draggingMarker);
+  setMarkerFromCanvas(sx - dragOffset.x, sy - dragOffset.y, draggingMarker);
 });
 
 document.addEventListener('mousemove', e => {
@@ -848,11 +885,12 @@ document.addEventListener('mousemove', e => {
   const rect = markerCanvas.getBoundingClientRect();
   const sx = Math.max(0, Math.min(pageCanvas.width, (e.clientX - rect.left) / rect.width * pageCanvas.width));
   const sy = Math.max(0, Math.min(pageCanvas.height, (e.clientY - rect.top) / rect.height * pageCanvas.height));
-  setMarkerFromCanvas(sx, sy, draggingMarker);
+  setMarkerFromCanvas(sx - dragOffset.x, sy - dragOffset.y, draggingMarker);
 });
 
 document.addEventListener('mouseup', () => {
   draggingMarker = null;
+  dragOffset = { x: 0, y: 0 };
   markerCanvas.style.cursor = 'grab';
 });
 
@@ -862,7 +900,8 @@ markerCanvas.addEventListener('touchstart', e => {
   const sx = (e.touches[0].clientX - rect.left) / rect.width * pageCanvas.width;
   const sy = (e.touches[0].clientY - rect.top) / rect.height * pageCanvas.height;
   draggingMarker = nearestMarker(sx, sy);
-  setMarkerFromCanvas(sx, sy, draggingMarker);
+  dragOffset = markerSize(draggingMarker);
+  setMarkerFromCanvas(sx - dragOffset.x, sy - dragOffset.y, draggingMarker);
   e.preventDefault();
 }, { passive: false });
 
@@ -905,11 +944,29 @@ function nearestMarker(cx, cy) {
   return stampDistance <= timeDistance ? 'stamp' : 'time';
 }
 
+function markerSize(which) {
+  if (which === 'stamp') return { x: stampCanvasW() / 2, y: stampCanvasH() / 2 };
+  const size = timeMarkerSize();
+  return { x: size.w / 2, y: size.h / 2 };
+}
+
 function markPdfNeedsApply() {
   if (!state.pdfDoc) return;
   state.readyToPrint = false;
   state.modifiedPdfBytes = copyBytes(state.pdfBytes);
   updateApplyButton();
+}
+
+function clampMarkerPositions() {
+  const pageWidthMm = state.pageWidth / PT_PER_MM;
+  const pageHeightMm = state.pageHeight / PT_PER_MM;
+  if (!pageWidthMm || !pageHeightMm) return;
+  const stampMaxX = Math.max(0, pageWidthMm - state.stampSize.w);
+  const stampMaxY = Math.max(0, pageHeightMm - state.stampSize.h);
+  state.stampPosition.x = Math.max(0, Math.min(state.stampPosition.x, stampMaxX));
+  state.stampPosition.y = Math.max(0, Math.min(state.stampPosition.y, stampMaxY));
+  state.timePosition.x = Math.max(0, Math.min(state.timePosition.x, Math.max(0, pageWidthMm - 35)));
+  state.timePosition.y = Math.max(0, Math.min(state.timePosition.y, Math.max(0, pageHeightMm - 10)));
 }
 
 function setMarkerFromCanvas(cx, cy, which) {
@@ -922,23 +979,13 @@ function setMarkerFromCanvas(cx, cy, which) {
   } else {
     state.timePosition = { x: vx, y: vy };
   }
+  clampMarkerPositions();
   markPdfNeedsApply();
   drawMarkers();
 }
 
 function syncInputsFromState() {
   updateApplyButton();
-}
-
-function applyGuidePreset() {
-  state.stampPosition = { ...GUIDE_PRESET.stampPosition };
-  state.stampSize = { ...GUIDE_PRESET.stampSize };
-  state.timePosition = { ...GUIDE_PRESET.timePosition };
-  state.timeFormat = GUIDE_PRESET.timeFormat;
-  syncInputsFromState();
-  markPdfNeedsApply();
-  drawMarkers();
-  saveSettings();
 }
 
 // ─── Page rendering ───────────────────────────────────────
@@ -1060,10 +1107,11 @@ async function loadPdf(file) {
   if (file.size > 50 * 1024 * 1024) { toast('El archivo excede 50 MB', 'error'); return; }
 
   state._loading = true;
-  setStatus('processing', 'Cargando PDF...');
+  setStatus('processing', 'Cargando PDF…');
   try {
     const arrayBuffer = await file.arrayBuffer();
     state.pdfBytes = new Uint8Array(arrayBuffer);
+    state.currentFileName = file.name;
     state.pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
     const pages = state.pdfDoc.getPages();
     state.pageCount = pages.length;
@@ -1072,12 +1120,14 @@ async function loadPdf(file) {
       const size = pages[0].getSize();
       state.pageWidth = size.width || DEFAULT_PAGE_POINTS.width;
       state.pageHeight = size.height || DEFAULT_PAGE_POINTS.height;
+      canvasWrapper.style.setProperty('--page-aspect', state.pageWidth / state.pageHeight);
+      clampMarkerPositions();
     }
 
     // Show workspace first so canvas wrapper has width
     uploadZone.style.display = 'none';
     workspace.classList.add('active');
-    pageCount.textContent = pages.length + ' págs';
+    pageCount.textContent = pages.length + ' pág' + (pages.length !== 1 ? 's' : '');
     pageCount.classList.add('visible');
     fileBadge.querySelector('.name').textContent = file.name;
     fileBadge.querySelector('.pages').textContent = pages.length + ' página' + (pages.length !== 1 ? 's' : '');
@@ -1089,7 +1139,7 @@ async function loadPdf(file) {
     state.modifiedPdfBytes = copyBytes(state.pdfBytes);
     state.readyToPrint = false;
 
-    setStatus('ready', 'PDF cargado — ' + pages.length + ' páginas');
+    setStatus('ready', 'PDF cargado — ' + pages.length + ' página' + (pages.length !== 1 ? 's' : ''));
     if (!state.selectedStampId) {
       toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
     }
@@ -1117,9 +1167,9 @@ async function applyStamps() {
   const stamp = state.stampLibrary.find(s => s.id === state.selectedStampId);
   if (!stamp) { toast('Timbre no encontrado', 'error'); return; }
 
-  setStatus('processing', 'Aplicando sellos...');
+  setStatus('processing', 'Aplicando sellos…');
   btnApply.disabled = true;
-  btnApply.textContent = '⏳ Procesando...';
+  btnApply.textContent = '⏳ Procesando…';
 
   try {
     const pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
@@ -1149,6 +1199,7 @@ async function applyStamps() {
 
     state.modifiedPdfBytes = await pdfDoc.save();
     state.readyToPrint = true;
+    await saveToHistory(state.modifiedPdfBytes);
     updateApplyButton();
     setStatus('ready', 'Sellos aplicados — listo para imprimir');
   } catch (err) {
@@ -1165,6 +1216,107 @@ function printPdf() {
   const blob = new Blob([state.modifiedPdfBytes], { type: 'application/pdf' });
   const w = window.open(URL.createObjectURL(blob), '_blank');
   if (w) w.addEventListener('load', () => w.print());
+}
+
+function openHistoryDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(HISTORY_DB, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(HISTORY_STORE, { keyPath: 'id' });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function historyAll() {
+  const db = await openHistoryDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(HISTORY_STORE, 'readonly');
+    const request = tx.objectStore(HISTORY_STORE).getAll();
+    request.onsuccess = () => resolve(request.result.sort((a, b) => b.createdAt - a.createdAt));
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => db.close();
+  });
+}
+
+async function saveToHistory(bytes) {
+  try {
+    const db = await openHistoryDb();
+    const items = await historyAll();
+    const item = {
+      id: 'pdf_' + Date.now(),
+      name: state.currentFileName || 'guia_sellada.pdf',
+      pageCount: state.pageCount,
+      createdAt: Date.now(),
+      bytes: copyBytes(bytes),
+    };
+    const tx = db.transaction(HISTORY_STORE, 'readwrite');
+    const store = tx.objectStore(HISTORY_STORE);
+    store.put(item);
+    [...items, item]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(HISTORY_LIMIT)
+      .forEach(oldItem => store.delete(oldItem.id));
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+      tx.onabort = () => { db.close(); reject(tx.error); };
+    });
+  } catch (err) {
+    console.warn('History save failed:', err);
+  }
+}
+
+async function openHistoryModal() {
+  $('historyModal').style.display = 'flex';
+  historyList.innerHTML = '<div class="history-empty">Cargando historial…</div>';
+  try {
+    const items = await historyAll();
+    if (!items.length) {
+      historyList.innerHTML = '<div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>';
+      return;
+    }
+    historyList.innerHTML = items.map(item => `
+      <div class="history-item">
+        <div class="history-info">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span>${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="printHistoryPdf('${item.id}')">Imprimir</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    historyList.innerHTML = '<div class="history-empty">No se pudo abrir el historial local.</div>';
+  }
+}
+
+function closeHistoryModal() {
+  $('historyModal').style.display = 'none';
+}
+
+async function printHistoryPdf(id) {
+  try {
+    const db = await openHistoryDb();
+    const item = await new Promise((resolve, reject) => {
+      const tx = db.transaction(HISTORY_STORE, 'readonly');
+      const request = tx.objectStore(HISTORY_STORE).get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      tx.oncomplete = () => db.close();
+    });
+    if (!item) return toast('No se encontró ese PDF en el historial', 'error');
+    const blob = new Blob([copyBytes(item.bytes)], { type: 'application/pdf' });
+    const w = window.open(URL.createObjectURL(blob), '_blank');
+    if (w) w.addEventListener('load', () => w.print());
+  } catch (err) {
+    toast('No se pudo imprimir desde el historial', 'error');
+  }
+}
+
+function formatHistoryDate(value) {
+  const date = new Date(value);
+  return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 // ─── Stamp Library ────────────────────────────────────────
@@ -1216,6 +1368,7 @@ function selectStamp(id) {
   const stamp = state.stampLibrary.find(s => s.id === id);
   if (stamp) {
     state.stampSize.h = state.stampSize.w * (stamp.natH / stamp.natW);
+    clampMarkerPositions();
     markPdfNeedsApply();
     if (pageCanvas.width) drawMarkers();
   }
@@ -1308,7 +1461,7 @@ function updateApplyButton() {
     actionHint.textContent = 'El sello y la hora ya fueron aplicados.';
     return;
   }
-  btnApply.textContent = '✦ Aplicar sello a ' + state.pageCount + ' páginas';
+  btnApply.textContent = '✦ Aplicar sello a ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '');
   actionIcon.textContent = '✦';
   actionTitle.textContent = 'Lista para aplicar';
   actionHint.textContent = 'Revisa la posición y aplica el sello.';
@@ -1318,7 +1471,9 @@ function updateApplyButton() {
 function resetAll() {
   state.pdfBytes = null; state.modifiedPdfBytes = null; state.pdfDoc = null;
   state.pageCount = 0; state.pageWidth = 0; state.pageHeight = 0;
+  state.currentFileName = '';
   state.readyToPrint = false;
+  canvasWrapper.style.setProperty('--page-aspect', DEFAULT_PAGE_POINTS.width / DEFAULT_PAGE_POINTS.height);
   uploadZone.style.display = '';
   workspace.classList.remove('active');
   pageCount.classList.remove('visible');
