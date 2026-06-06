@@ -1149,12 +1149,13 @@ const MATERIAL_EXTRA_GAP_AFTER_2 = 8;
 const PRINT_TEXT_SCALE = 1.45;
 const MATERIAL_DISPATCH_OFFSET_MM = 9.9;
 const MATERIAL_CODE_OFFSET_MM = 22.2;
-const LOAD_LABEL_POSITION_MM = { x: 74, y: 35.5 };
+const MATERIAL_DEVOLUTION_OFFSET_MM = 36.0;
+const LOAD_LABEL_POSITION_MM = { x: 52, y: 35.5 };
 const LOAD_LABEL_FONT_SIZE_PT = 5.6;
 const MATERIAL_ROWS = [
-  { article: 'CONSUMO', dispatch: '1', code: '113' },
-  { article: 'PLASTICOS VACIOS', dispatch: '5', code: '6133' },
-  { article: 'PALLETS', dispatch: '', code: '8531' },
+  { article: 'CONSUMO', dispatch: '1', code: '113', devolution: '' },
+  { article: 'PLASTICOS VACIOS', dispatch: '5', code: '6133', devolution: '' },
+  { article: 'PALLETS', dispatch: '', code: '8531', devolution: '' },
 ];
 
 // ─── DOM refs ────────────────────────────────────────────
@@ -1382,7 +1383,8 @@ function materialPreviewMetrics() {
   const extraGap = MATERIAL_EXTRA_GAP_AFTER_2 * PRINT_TEXT_SCALE * (pageCanvas.height / state.pageHeight);
   const dispatchOffset = MATERIAL_DISPATCH_OFFSET_MM / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
   const codeOffset = MATERIAL_CODE_OFFSET_MM / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
-  return { fontSize, rowGap, extraGap, dispatchOffset, codeOffset };
+  const devolutionOffset = MATERIAL_DEVOLUTION_OFFSET_MM / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
+  return { fontSize, rowGap, extraGap, dispatchOffset, codeOffset, devolutionOffset };
 }
 
 function truckForPage(pageIndex) {
@@ -1400,7 +1402,10 @@ function materialRowsForTruck(truck) {
   const pallets = Number(info?.palletDifference);
   if (Number.isFinite(pallets) && pallets > 0) {
     const palletRow = rows.find(row => row.code === '8531');
-    if (palletRow) palletRow.dispatch = String(pallets);
+    if (palletRow) {
+      palletRow.dispatch = '';
+      palletRow.devolution = String(pallets);
+    }
   }
   return rows;
 }
@@ -1408,7 +1413,8 @@ function materialRowsForTruck(truck) {
 function loadLabelForTruck(truck) {
   const info = dispatchInfoForTruck(truck);
   if (!info?.loads?.length) return '';
-  return info.loads.map(load => load.carga).join(' / ');
+  const cargas = info.loads.map(load => load.carga).join(' / ');
+  return 'Carga: ' + cargas;
 }
 
 function hasDispatchLoads() {
@@ -1424,13 +1430,14 @@ function materialBlockBoundsCanvas() {
   mctx.font = '800 ' + metrics.fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
   const articleWidth = Math.max(...rows.map(row => mctx.measureText(row.article).width));
   const codeWidth = Math.max(...rows.map(row => mctx.measureText(row.code).width));
+  const devolutionWidth = Math.max(...rows.map(row => mctx.measureText(row.devolution || '').width));
   mctx.restore();
   const rowCount = rows.length;
   const extraHeight = rowCount > 2 ? metrics.extraGap : 0;
   return {
     x: anchorX - articleWidth - 6,
     y: anchorY - metrics.fontSize,
-    w: articleWidth + metrics.codeOffset + codeWidth + 12,
+    w: articleWidth + metrics.devolutionOffset + devolutionWidth + 12,
     h: metrics.fontSize + Math.max(0, rowCount - 1) * metrics.rowGap + extraHeight + 6,
     anchorX,
     anchorY,
@@ -1678,6 +1685,9 @@ function drawMaterialPreview() {
     mctx.textAlign = 'center';
     mctx.fillText(row.dispatch, anchorX + metrics.dispatchOffset, y);
     mctx.fillText(row.code, anchorX + metrics.codeOffset, y);
+    if (row.devolution) {
+      mctx.fillText(row.devolution, anchorX + metrics.devolutionOffset, y);
+    }
   });
   mctx.restore();
 }
@@ -1888,6 +1898,7 @@ async function loadDispatchData() {
   } catch (err) {
     console.warn('No se pudo cargar preventa Neon:', err);
     state.dispatchData = null;
+    toast('No se pudo cargar la preventa desde Neon. Puedes seguir usando la app con los datos manuales.', 'warning');
   }
 }
 
@@ -2005,6 +2016,7 @@ function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materia
   const firstBaselineY = pageHeight - (state.materialPosition.y * PT_PER_MM);
   const dispatchX = articleRightX + (MATERIAL_DISPATCH_OFFSET_MM * PT_PER_MM);
   const codeX = articleRightX + (MATERIAL_CODE_OFFSET_MM * PT_PER_MM);
+  const devolutionX = articleRightX + (MATERIAL_DEVOLUTION_OFFSET_MM * PT_PER_MM);
   materialRowsForTruck(truck).forEach((row, index) => {
     const extra = index >= 2 ? materialExtraGap : 0;
     const y = firstBaselineY - (index * materialRowGap) - extra;
@@ -2029,6 +2041,15 @@ function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materia
       font,
       color: PDFLib.rgb(0, 0, 0),
     });
+    if (row.devolution) {
+      page.drawText(row.devolution, {
+        x: devolutionX - font.widthOfTextAtSize(row.devolution, materialFontSize) / 2,
+        y,
+        size: materialFontSize,
+        font,
+        color: PDFLib.rgb(0, 0, 0),
+      });
+    }
   });
 }
 
