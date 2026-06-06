@@ -1122,6 +1122,16 @@ const state = {
   _loading: false,
 };
 
+const DEFAULT_MARKER_SETTINGS = {
+  stampPosition: { x: 2, y: 232 },
+  stamp2Position: { x: 120, y: 232 },
+  materialPosition: { x: 64, y: 198 },
+  stampSize: { w: 30, h: 30 },
+  stampRotation: 0,
+  timePosition: { x: 74, y: 238.5 },
+  timeFormat: 'HH:mm',
+};
+
 const PT_PER_MM = 72 / 25.4;
 const DEFAULT_PAGE_POINTS = { width: 612, height: 792 };
 const copyBytes = bytes => new Uint8Array(bytes);
@@ -1183,6 +1193,7 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 loadStampLibrary();
+resetMarkerSettings();
 loadSettings();
 updateClock();
 setInterval(updateClock, 1000);
@@ -1723,6 +1734,8 @@ async function loadPdf(file) {
   state._loading = true;
   setStatus('processing', 'Cargando PDF…');
   try {
+    resetMarkerSettings();
+    syncInputsFromState();
     const arrayBuffer = await file.arrayBuffer();
     state.pdfBytes = new Uint8Array(arrayBuffer);
     state.currentFileName = file.name;
@@ -1770,7 +1783,6 @@ async function loadPdf(file) {
     if (state.stampEnabled && !state.selectedStampId) {
       toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
     }
-    saveSettings();
   } catch (err) {
     console.error(err);
     setStatus('error', 'Error');
@@ -2073,29 +2085,30 @@ function loadSettings() {
     if (typeof s.doubleStamp === 'boolean') state.doubleStamp = s.doubleStamp;
     if (typeof s.timeEnabled === 'boolean') state.timeEnabled = s.timeEnabled;
     if (typeof s.materialEnabled === 'boolean') state.materialEnabled = s.materialEnabled;
-    if (s.stampPosition) state.stampPosition = s.stampPosition;
-    if (s.stamp2Position) state.stamp2Position = s.stamp2Position;
-    if (s.materialPosition) state.materialPosition = s.materialPosition;
-    if (state.materialPosition.x === 64 && (state.materialPosition.y === 211.5 || state.materialPosition.y === 202.5)) {
-      state.materialPosition = { x: 64, y: 198 };
-    }
-    if (s.timePosition) state.timePosition = s.timePosition;
-    if (state.timePosition.x === 74 && (state.timePosition.y === 236 || state.timePosition.y === 241)) {
-      state.timePosition = { x: 74, y: 238.5 };
-    }
-    if (s.stampSize) state.stampSize = s.stampSize;
-    if (Number.isFinite(s.stampRotation)) state.stampRotation = s.stampRotation;
-    if (s.timeFormat) state.timeFormat = s.timeFormat;
     if (!state.stampEnabled) state.doubleStamp = false;
+    saveSettings();
   } catch {}
 }
 function saveSettings() {
   localStorage.setItem('selloguia_settings', JSON.stringify({
     version: SETTINGS_VERSION,
-    stampEnabled: state.stampEnabled, doubleStamp: state.doubleStamp, timeEnabled: state.timeEnabled, materialEnabled: state.materialEnabled,
-    stampPosition: state.stampPosition, stamp2Position: state.stamp2Position, materialPosition: state.materialPosition, timePosition: state.timePosition,
-    stampSize: state.stampSize, stampRotation: state.stampRotation, timeFormat: state.timeFormat,
+    stampEnabled: state.stampEnabled,
+    doubleStamp: state.doubleStamp,
+    timeEnabled: state.timeEnabled,
+    materialEnabled: state.materialEnabled,
   }));
+}
+
+function resetMarkerSettings() {
+  const stamp = selectedStamp();
+  const defaultStampHeight = stamp && stamp.natW ? DEFAULT_MARKER_SETTINGS.stampSize.w * (stamp.natH / stamp.natW) : DEFAULT_MARKER_SETTINGS.stampSize.h;
+  state.stampPosition = { ...DEFAULT_MARKER_SETTINGS.stampPosition };
+  state.stamp2Position = { ...DEFAULT_MARKER_SETTINGS.stamp2Position };
+  state.materialPosition = { ...DEFAULT_MARKER_SETTINGS.materialPosition };
+  state.stampSize = { w: DEFAULT_MARKER_SETTINGS.stampSize.w, h: defaultStampHeight };
+  state.stampRotation = DEFAULT_MARKER_SETTINGS.stampRotation;
+  state.timePosition = { ...DEFAULT_MARKER_SETTINGS.timePosition };
+  state.timeFormat = DEFAULT_MARKER_SETTINGS.timeFormat;
 }
 
 function renderStampList() {
@@ -2395,6 +2408,8 @@ function resetAll() {
   state.stampTimeFromFile = null;
   updateTimeLabel();
   updateClock();
+  resetMarkerSettings();
+  syncInputsFromState();
   state.materialPages = [];
   state.materialTrucks = [];
   state.readyToPrint = false;
