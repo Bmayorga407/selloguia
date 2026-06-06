@@ -1837,15 +1837,21 @@ async function loadPdf(file) {
       clampMarkerPositions();
     }
 
-    // Auto-configurar toggles para formatos horizontales grandes (ej: oficio 8.5x13)
-    // Solo afecta cuando el PDF está acostado y es más ancho que carta horizontal (792pt)
+    // Auto-configurar toggles según formato del PDF
     if (state.pageWidth > state.pageHeight && state.pageWidth > 850) {
+      // Oficio horizontal: timbre doble, sin hora ni material
       state.stampEnabled = true;
       state.doubleStamp = true;
       state.timeEnabled = false;
       state.materialEnabled = false;
-      syncInputsFromState();
+    } else {
+      // Carta y demás formatos: timbre simple, con hora, sin material
+      state.stampEnabled = true;
+      state.doubleStamp = false;
+      state.timeEnabled = true;
+      state.materialEnabled = false;
     }
+    syncInputsFromState();
 
     // Show workspace first so canvas wrapper has width
     uploadZone.style.display = 'none';
