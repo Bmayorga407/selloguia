@@ -1102,6 +1102,7 @@ const state = {
   pageWidth: 0,
   pageHeight: 0,
   currentFileName: '',
+  stampTimeFromFile: null,
   stampLibrary: [],
   selectedStampId: null,
   stampEnabled: true,
@@ -1313,7 +1314,7 @@ function selectedStamp(){ return state.stampLibrary.find(s => s.id === state.sel
 function timePreviewFontSize(){ return Math.max(12, TIME_FONT_SIZE_PT * PRINT_TEXT_SCALE * (pageCanvas.height / state.pageHeight)); }
 function timeMarkerSize(){
   const fontSize = timePreviewFontSize();
-  const label = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+  const label = formatTime(getStampTime(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
   mctx.save();
   mctx.font = '800 ' + fontSize + 'px "DM Mono", ui-monospace, monospace';
   const w = mctx.measureText(label).width;
@@ -1574,7 +1575,7 @@ function drawMarkers() {
   // Time
   if (state.timeEnabled) {
     const tcx = timeCanvasX(), tcy = timeCanvasY();
-    const timeLabel = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+    const timeLabel = formatTime(getStampTime(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
     const timeFontSize = timePreviewFontSize();
     mctx.save();
     mctx.font = '800 ' + timeFontSize + 'px "DM Mono", ui-monospace, monospace';
@@ -1639,10 +1640,32 @@ window.addEventListener('resize', () => {
 });
 
 // ─── Clock ────────────────────────────────────────────────
+function parseTimeFromFileName(name) {
+  const base = String(name || '').trim();
+  if (!base) return null;
+  const match = base.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})(?:\.pdf)?$/i);
+  if (!match) return null;
+  const [, y, mo, d, h, mi, s] = match;
+  const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s));
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.getFullYear() !== Number(y) || date.getMonth() !== Number(mo) - 1 || date.getDate() !== Number(d)) return null;
+  if (date.getHours() !== Number(h) || date.getMinutes() !== Number(mi) || date.getSeconds() !== Number(s)) return null;
+  return date;
+}
+
+function getStampTime() {
+  return state.stampTimeFromFile || new Date();
+}
+
+function updateTimeLabel() {
+  const label = document.querySelector('#liveTime .label');
+  if (label) label.textContent = state.stampTimeFromFile ? 'Hora del archivo' : 'Hora actual';
+}
+
 function updateClock() {
-  const now = new Date();
-  timeDisplay.textContent = formatTime(now, state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
-  if (pageCanvas.width) drawMarkers();
+  const stampTime = getStampTime();
+  timeDisplay.textContent = formatTime(stampTime, state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
+  if (pageCanvas.width && !state.stampTimeFromFile) drawMarkers();
 }
 
 function formatTime(date, fmt) {
@@ -1703,6 +1726,9 @@ async function loadPdf(file) {
     const arrayBuffer = await file.arrayBuffer();
     state.pdfBytes = new Uint8Array(arrayBuffer);
     state.currentFileName = file.name;
+    state.stampTimeFromFile = parseTimeFromFileName(file.name);
+    updateTimeLabel();
+    updateClock();
     state.pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
     const pages = state.pdfDoc.getPages();
     state.pageCount = pages.length;
@@ -1734,6 +1760,9 @@ async function loadPdf(file) {
     updateApplyButton();
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' página' + (pages.length !== 1 ? 's' : ''));
+    if (state.stampTimeFromFile) {
+      toast('Hora del archivo: ' + formatTime(state.stampTimeFromFile, state.timeFormat), 'success');
+    }
     if (state.materialEnabled) {
       if (state.materialPages.length) toast('Material operativo: ' + state.materialPages.length + ' camiones detectados', 'success');
       else toast('Material operativo activo, pero no detecté camiones en este PDF', 'info');
@@ -1789,8 +1818,7 @@ async function applyStamps() {
         : await pdfDoc.embedJpg(stampBytes);
     }
     const font = (state.timeEnabled || state.materialEnabled) ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
-    const now = new Date();
-    const timeStr = formatTime(now, state.timeFormat);
+    const timeStr = formatTime(getStampTime(), state.timeFormat);
     const fontSize = TIME_FONT_SIZE_PT * PRINT_TEXT_SCALE;
     const materialFontSize = MATERIAL_FONT_SIZE_PT * PRINT_TEXT_SCALE;
     const materialRowGap = MATERIAL_ROW_GAP_PT * PRINT_TEXT_SCALE;
@@ -2364,6 +2392,9 @@ function resetAll() {
   state.pdfBytes = null; state.modifiedPdfBytes = null; state.pdfDoc = null;
   state.pageCount = 0; state.pageWidth = 0; state.pageHeight = 0;
   state.currentFileName = '';
+  state.stampTimeFromFile = null;
+  updateTimeLabel();
+  updateClock();
   state.materialPages = [];
   state.materialTrucks = [];
   state.readyToPrint = false;
