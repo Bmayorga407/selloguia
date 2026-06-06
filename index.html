@@ -1109,6 +1109,8 @@ const state = {
   doubleStamp: false,
   timeEnabled: true,
   materialEnabled: false,
+  dispatchDate: '',
+  dispatchData: null,
   stampPosition: { x: 5, y: 234 },
   stamp2Position: { x: 120, y: 232 },
   materialPosition: { x: 64, y: 198 },
@@ -1147,6 +1149,8 @@ const MATERIAL_EXTRA_GAP_AFTER_2 = 8;
 const PRINT_TEXT_SCALE = 1.45;
 const MATERIAL_DISPATCH_OFFSET_MM = 9.9;
 const MATERIAL_CODE_OFFSET_MM = 22.2;
+const LOAD_LABEL_POSITION_MM = { x: 74, y: 35.5 };
+const LOAD_LABEL_FONT_SIZE_PT = 5.6;
 const MATERIAL_ROWS = [
   { article: 'CONSUMO', dispatch: '1', code: '113' },
   { article: 'PLASTICOS VACIOS', dispatch: '5', code: '6133' },
@@ -1381,16 +1385,47 @@ function materialPreviewMetrics() {
   return { fontSize, rowGap, extraGap, dispatchOffset, codeOffset };
 }
 
+function truckForPage(pageIndex) {
+  const materialIndex = state.materialPages.indexOf(pageIndex);
+  return materialIndex >= 0 ? state.materialTrucks[materialIndex] : '';
+}
+
+function dispatchInfoForTruck(truck) {
+  return truck && state.dispatchData?.byTruck ? state.dispatchData.byTruck[truck] || null : null;
+}
+
+function materialRowsForTruck(truck) {
+  const rows = MATERIAL_ROWS.map(row => ({ ...row }));
+  const info = dispatchInfoForTruck(truck);
+  const pallets = Number(info?.palletDifference);
+  if (Number.isFinite(pallets) && pallets > 0) {
+    const palletRow = rows.find(row => row.code === '8531');
+    if (palletRow) palletRow.dispatch = String(pallets);
+  }
+  return rows;
+}
+
+function loadLabelForTruck(truck) {
+  const info = dispatchInfoForTruck(truck);
+  if (!info?.loads?.length) return '';
+  return info.loads.map(load => load.carga).join(' / ');
+}
+
+function hasDispatchLoads() {
+  return Object.values(state.dispatchData?.byTruck || {}).some(item => item?.loads?.length);
+}
+
 function materialBlockBoundsCanvas() {
   const anchorX = materialCanvasX();
   const anchorY = materialCanvasY();
   const metrics = materialPreviewMetrics();
+  const rows = materialRowsForTruck(truckForPage(0));
   mctx.save();
   mctx.font = '800 ' + metrics.fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
-  const articleWidth = Math.max(...MATERIAL_ROWS.map(row => mctx.measureText(row.article).width));
-  const codeWidth = Math.max(...MATERIAL_ROWS.map(row => mctx.measureText(row.code).width));
+  const articleWidth = Math.max(...rows.map(row => mctx.measureText(row.article).width));
+  const codeWidth = Math.max(...rows.map(row => mctx.measureText(row.code).width));
   mctx.restore();
-  const rowCount = MATERIAL_ROWS.length;
+  const rowCount = rows.length;
   const extraHeight = rowCount > 2 ? metrics.extraGap : 0;
   return {
     x: anchorX - articleWidth - 6,
@@ -1600,6 +1635,11 @@ function drawMarkers() {
   if (state.materialEnabled && isCurrentPageMaterialPage()) {
     drawMaterialPreview();
   }
+
+  const loadLabel = loadLabelForTruck(truckForPage(0));
+  if (loadLabel) {
+    drawLoadLabelPreview(loadLabel);
+  }
 }
 
 function drawStampPreview(x, y, w, h, stampImage) {
@@ -1625,11 +1665,12 @@ function drawMaterialPreview() {
   const anchorX = materialCanvasX();
   const anchorY = materialCanvasY();
   const metrics = materialPreviewMetrics();
+  const rows = materialRowsForTruck(truckForPage(0));
   mctx.save();
   mctx.font = '800 ' + metrics.fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
   mctx.textBaseline = 'alphabetic';
   mctx.fillStyle = '#050505';
-  MATERIAL_ROWS.forEach((row, index) => {
+  rows.forEach((row, index) => {
     const extra = index >= 2 ? metrics.extraGap : 0;
     const y = anchorY + index * metrics.rowGap + extra;
     mctx.textAlign = 'right';
@@ -1638,6 +1679,19 @@ function drawMaterialPreview() {
     mctx.fillText(row.dispatch, anchorX + metrics.dispatchOffset, y);
     mctx.fillText(row.code, anchorX + metrics.codeOffset, y);
   });
+  mctx.restore();
+}
+
+function drawLoadLabelPreview(label) {
+  const x = LOAD_LABEL_POSITION_MM.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
+  const y = LOAD_LABEL_POSITION_MM.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height;
+  const fontSize = Math.max(7, LOAD_LABEL_FONT_SIZE_PT * (pageCanvas.height / state.pageHeight));
+  mctx.save();
+  mctx.font = '800 ' + fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
+  mctx.textAlign = 'left';
+  mctx.textBaseline = 'alphabetic';
+  mctx.fillStyle = '#050505';
+  mctx.fillText(label, x, y);
   mctx.restore();
 }
 
@@ -1701,7 +1755,7 @@ async function handleFileSelect(e) {
 }
 
 async function analyzeMaterialPages(bytes) {
-  const result = { pages: [], trucks: [] };
+  const result = { pages: [], trucks: [], dispatchDate: '' };
   if (typeof pdfjsLib === 'undefined') return result;
   const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(bytes) }).promise;
   let previousTruck = null;
@@ -1709,6 +1763,7 @@ async function analyzeMaterialPages(bytes) {
     const page = await pdfDoc.getPage(pageIndex + 1);
     const textContent = await page.getTextContent();
     const text = textContent.items.map(item => item.str || '').join(' ');
+    if (!result.dispatchDate) result.dispatchDate = detectGuideDate(text);
     const truck = detectTruckCode(text);
     if (truck && truck !== previousTruck) {
       result.pages.push(pageIndex);
@@ -1717,6 +1772,17 @@ async function analyzeMaterialPages(bytes) {
     if (truck) previousTruck = truck;
   }
   return result;
+}
+
+function detectGuideDate(text) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  const preferred = normalized.match(/\bCONCEPCION\s+(\d{2})\/(\d{2})\/(\d{4})\b/i);
+  const modernDate = [...normalized.matchAll(/\b(\d{2})\/(\d{2})\/(\d{4})\b/g)]
+    .find(match => Number(match[3]) >= 2020);
+  const match = preferred || modernDate || normalized.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);
+  if (!match) return '';
+  const [, dd, mm, yyyy] = match;
+  return yyyy + '-' + mm + '-' + dd;
 }
 
 function detectTruckCode(text) {
@@ -1748,6 +1814,9 @@ async function loadPdf(file) {
     const materialAnalysis = await analyzeMaterialPages(state.pdfBytes);
     state.materialPages = materialAnalysis.pages;
     state.materialTrucks = materialAnalysis.trucks;
+    state.dispatchDate = materialAnalysis.dispatchDate;
+    state.dispatchData = null;
+    await loadDispatchData();
 
     if (pages.length > 0) {
       const size = pages[0].getSize();
@@ -1780,6 +1849,9 @@ async function loadPdf(file) {
       if (state.materialPages.length) toast('Material operativo: ' + state.materialPages.length + ' camiones detectados', 'success');
       else toast('Material operativo activo, pero no detecté camiones en este PDF', 'info');
     }
+    if (state.dispatchData?.matchedCount) {
+      toast('Cargas preventa: ' + state.dispatchData.matchedCount + ' camiones encontrados', 'success');
+    }
     if (state.stampEnabled && !state.selectedStampId) {
       toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
     }
@@ -1789,6 +1861,33 @@ async function loadPdf(file) {
     toast('Error al procesar el PDF: ' + err.message, 'error');
   } finally {
     state._loading = false;
+  }
+}
+
+async function loadDispatchData() {
+  if (!state.dispatchDate || !state.materialTrucks.length) return;
+  try {
+    const params = new URLSearchParams({
+      fecha: state.dispatchDate,
+      trucks: state.materialTrucks.join(','),
+    });
+    const response = await fetch('/api/dispatch-data?' + params.toString(), { cache: 'no-store' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const payload = await response.json();
+    if (!payload?.ok || !Array.isArray(payload.trucks)) return;
+    const byTruck = {};
+    payload.trucks.forEach(item => {
+      if (item?.truck) byTruck[item.truck] = item;
+    });
+    state.dispatchData = {
+      fecha: payload.fecha,
+      sucursal: payload.sucursal,
+      byTruck,
+      matchedCount: payload.trucks.filter(item => item.found || item.loads?.length).length,
+    };
+  } catch (err) {
+    console.warn('No se pudo cargar preventa Neon:', err);
+    state.dispatchData = null;
   }
 }
 
@@ -1829,7 +1928,8 @@ async function applyStamps() {
         ? await pdfDoc.embedPng(stampBytes)
         : await pdfDoc.embedJpg(stampBytes);
     }
-    const font = (state.timeEnabled || state.materialEnabled) ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
+    const needsTextFont = state.timeEnabled || state.materialEnabled || hasDispatchLoads();
+    const font = needsTextFont ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
     const timeStr = formatTime(getStampTime(), state.timeFormat);
     const fontSize = TIME_FONT_SIZE_PT * PRINT_TEXT_SCALE;
     const materialFontSize = MATERIAL_FONT_SIZE_PT * PRINT_TEXT_SCALE;
@@ -1848,7 +1948,12 @@ async function applyStamps() {
       }
 
       if (state.materialEnabled && state.materialPages.includes(pageIndex)) {
-        drawMaterialOnPdfPage(page, font, height, materialFontSize, materialRowGap, materialExtraGap);
+        drawMaterialOnPdfPage(page, font, height, materialFontSize, materialRowGap, materialExtraGap, truckForPage(pageIndex));
+      }
+
+      const loadLabel = loadLabelForTruck(truckForPage(pageIndex));
+      if (loadLabel && font) {
+        drawLoadLabelOnPdfPage(page, font, height, loadLabel);
       }
 
       if (state.timeEnabled) {
@@ -1895,12 +2000,12 @@ function drawStampOnPdfPage(page, stampImage, position, pageHeight, stampWpt, st
   page.drawImage(stampImage, { x: sx, y: sy, width: stampWpt, height: stampHpt, opacity: 0.9 });
 }
 
-function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materialRowGap, materialExtraGap) {
+function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materialRowGap, materialExtraGap, truck) {
   const articleRightX = state.materialPosition.x * PT_PER_MM;
   const firstBaselineY = pageHeight - (state.materialPosition.y * PT_PER_MM);
   const dispatchX = articleRightX + (MATERIAL_DISPATCH_OFFSET_MM * PT_PER_MM);
   const codeX = articleRightX + (MATERIAL_CODE_OFFSET_MM * PT_PER_MM);
-  MATERIAL_ROWS.forEach((row, index) => {
+  materialRowsForTruck(truck).forEach((row, index) => {
     const extra = index >= 2 ? materialExtraGap : 0;
     const y = firstBaselineY - (index * materialRowGap) - extra;
     page.drawText(row.article, {
@@ -1924,6 +2029,19 @@ function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materia
       font,
       color: PDFLib.rgb(0, 0, 0),
     });
+  });
+}
+
+function drawLoadLabelOnPdfPage(page, font, pageHeight, label) {
+  const fontSize = LOAD_LABEL_FONT_SIZE_PT;
+  const x = LOAD_LABEL_POSITION_MM.x * PT_PER_MM;
+  const y = pageHeight - (LOAD_LABEL_POSITION_MM.y * PT_PER_MM);
+  page.drawText(label, {
+    x,
+    y,
+    size: fontSize,
+    font,
+    color: PDFLib.rgb(0, 0, 0),
   });
 }
 
