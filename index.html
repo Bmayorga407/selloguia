@@ -2055,7 +2055,7 @@ function drawMaterialOnPdfPage(page, font, pageHeight, materialFontSize, materia
 }
 
 function drawLoadLabelOnPdfPage(page, font, pageHeight, label) {
-  const fontSize = LOAD_LABEL_FONT_SIZE_PT;
+  const fontSize = LOAD_LABEL_FONT_SIZE_PT * PRINT_TEXT_SCALE;
   const x = LOAD_LABEL_POSITION_MM.x * PT_PER_MM;
   const y = pageHeight - (LOAD_LABEL_POSITION_MM.y * PT_PER_MM);
   page.drawText(label, {
