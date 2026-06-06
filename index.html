@@ -1837,6 +1837,16 @@ async function loadPdf(file) {
       clampMarkerPositions();
     }
 
+    // Auto-configurar toggles para formatos horizontales grandes (ej: oficio 8.5x13)
+    // Solo afecta cuando el PDF está acostado y es más ancho que carta horizontal (792pt)
+    if (state.pageWidth > state.pageHeight && state.pageWidth > 850) {
+      state.stampEnabled = true;
+      state.doubleStamp = true;
+      state.timeEnabled = false;
+      state.materialEnabled = false;
+      syncInputsFromState();
+    }
+
     // Show workspace first so canvas wrapper has width
     uploadZone.style.display = 'none';
     workspace.classList.add('active');
