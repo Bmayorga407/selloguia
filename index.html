@@ -1108,7 +1108,7 @@ const state = {
   stampEnabled: true,
   doubleStamp: false,
   timeEnabled: true,
-  materialEnabled: true,
+  materialEnabled: false,
   stampPosition: { x: 2, y: 232 },
   stamp2Position: { x: 120, y: 232 },
   materialPosition: { x: 64, y: 198 },
@@ -2078,25 +2078,10 @@ function loadStampLibrary() {
 function saveStampLibrary() { localStorage.setItem('selloguia_stamps', JSON.stringify(state.stampLibrary)); }
 
 function loadSettings() {
-  try {
-    const s = JSON.parse(localStorage.getItem('selloguia_settings') || '{}');
-    if (s.version !== SETTINGS_VERSION) return;
-    if (typeof s.stampEnabled === 'boolean') state.stampEnabled = s.stampEnabled;
-    if (typeof s.doubleStamp === 'boolean') state.doubleStamp = s.doubleStamp;
-    if (typeof s.timeEnabled === 'boolean') state.timeEnabled = s.timeEnabled;
-    if (typeof s.materialEnabled === 'boolean') state.materialEnabled = s.materialEnabled;
-    if (!state.stampEnabled) state.doubleStamp = false;
-    saveSettings();
-  } catch {}
+  localStorage.removeItem('selloguia_settings');
 }
 function saveSettings() {
-  localStorage.setItem('selloguia_settings', JSON.stringify({
-    version: SETTINGS_VERSION,
-    stampEnabled: state.stampEnabled,
-    doubleStamp: state.doubleStamp,
-    timeEnabled: state.timeEnabled,
-    materialEnabled: state.materialEnabled,
-  }));
+  localStorage.removeItem('selloguia_settings');
 }
 
 function resetMarkerSettings() {
