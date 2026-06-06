@@ -1414,7 +1414,8 @@ function loadLabelForTruck(truck) {
   const info = dispatchInfoForTruck(truck);
   if (!info?.loads?.length) return '';
   const cargas = info.loads.map(load => load.carga).join(' / ');
-  return 'Carga: ' + cargas;
+  const label = info.loads.length === 1 ? 'Carga' : 'Cargas';
+  return label + ': ' + cargas;
 }
 
 function hasDispatchLoads() {
