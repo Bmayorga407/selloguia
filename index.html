@@ -1837,13 +1837,15 @@ async function loadPdf(file) {
       clampMarkerPositions();
     }
 
-    // Auto-configurar toggles según formato del PDF
+    // Auto-configurar toggles y posiciones según formato del PDF
     if (state.pageWidth > state.pageHeight && state.pageWidth > 850) {
-      // Oficio horizontal: timbre doble, sin hora ni material
+      // Oficio horizontal: timbre doble en recuadros "Autorizado", sin hora ni material
       state.stampEnabled = true;
       state.doubleStamp = true;
       state.timeEnabled = false;
       state.materialEnabled = false;
+      state.stampPosition = { x: 35, y: 84 };
+      state.stamp2Position = { x: 199, y: 84 };
     } else {
       // Carta y demás formatos: timbre simple, con hora, sin material
       state.stampEnabled = true;
