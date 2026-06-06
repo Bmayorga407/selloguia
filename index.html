@@ -1117,6 +1117,7 @@ const TIME_FONT_SIZE_PT = 12;
 const MATERIAL_FONT_SIZE_PT = 6.7;
 const MATERIAL_ROW_GAP_PT = 9;
 const MATERIAL_EXTRA_GAP_AFTER_2 = 18;
+const PRINT_TEXT_SCALE = 1.45;
 const MATERIAL_DISPATCH_OFFSET_MM = 9.9;
 const MATERIAL_CODE_OFFSET_MM = 22.2;
 const MATERIAL_ROWS = [
@@ -1771,10 +1772,10 @@ async function applyStamps() {
     const font = (state.timeEnabled || state.materialEnabled) ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
     const now = new Date();
     const timeStr = formatTime(now, state.timeFormat);
-    const fontSize = TIME_FONT_SIZE_PT;
-    const materialFontSize = MATERIAL_FONT_SIZE_PT;
-    const materialRowGap = MATERIAL_ROW_GAP_PT;
-    const materialExtraGap = MATERIAL_EXTRA_GAP_AFTER_2;
+    const fontSize = TIME_FONT_SIZE_PT * PRINT_TEXT_SCALE;
+    const materialFontSize = MATERIAL_FONT_SIZE_PT * PRINT_TEXT_SCALE;
+    const materialRowGap = MATERIAL_ROW_GAP_PT * PRINT_TEXT_SCALE;
+    const materialExtraGap = MATERIAL_EXTRA_GAP_AFTER_2 * PRINT_TEXT_SCALE;
 
     const stampWpt = state.stampEnabled ? state.stampSize.w * PT_PER_MM : 0;
     const stampHpt = state.stampEnabled ? stampWpt * (stamp.natH / stamp.natW) : 0;
