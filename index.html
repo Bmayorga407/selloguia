@@ -527,8 +527,10 @@ body::before{
 .action-bar{
   position:static;
   z-index:10;
-  align-self:start;
+  align-self:stretch;
   max-width:none;
+  min-height:0;
+  max-height:100%;
   display:flex;
   align-items:center;
   justify-content:flex-start;
@@ -539,6 +541,7 @@ body::before{
   border-radius:22px;
   padding:12px;
   box-shadow:0 18px 48px rgba(20,24,32,0.08);
+  overflow:hidden;
 }
 .action-bar.ready-to-print{
   border-color:rgba(17,139,88,0.35);
@@ -662,8 +665,12 @@ body::before{
 }
 .side-history{
   width:100%;
+  min-height:0;
+  flex:1;
+  display:flex;
+  flex-direction:column;
   border-top:1px solid var(--border);
-  padding-top:14px;
+  padding-top:10px;
   margin-top:2px;
 }
 .side-history h3{
@@ -678,7 +685,8 @@ body::before{
   display:flex;
   flex-direction:column;
   gap:8px;
-  max-height:calc(100dvh - 310px);
+  min-height:0;
+  flex:1;
   overflow:auto;
   padding-right:2px;
 }
@@ -1095,12 +1103,12 @@ const state = {
   materialEnabled: true,
   stampPosition: { x: 2, y: 232 },
   stamp2Position: { x: 120, y: 232 },
-  materialPosition: { x: 64, y: 211.5 },
+  materialPosition: { x: 64, y: 198 },
   materialPages: [],
   materialTrucks: [],
   stampSize: { w: 30, h: 30 },
   stampRotation: 0,
-  timePosition: { x: 74, y: 236 },
+  timePosition: { x: 74, y: 238.5 },
   timeFormat: 'HH:mm',
   readyToPrint: false,
   _loading: false,
@@ -1116,7 +1124,7 @@ const HISTORY_LIMIT = 10;
 const TIME_FONT_SIZE_PT = 12;
 const MATERIAL_FONT_SIZE_PT = 6.7;
 const MATERIAL_ROW_GAP_PT = 9;
-const MATERIAL_EXTRA_GAP_AFTER_2 = 18;
+const MATERIAL_EXTRA_GAP_AFTER_2 = 8;
 const PRINT_TEXT_SCALE = 1.45;
 const MATERIAL_DISPATCH_OFFSET_MM = 9.9;
 const MATERIAL_CODE_OFFSET_MM = 22.2;
@@ -1294,7 +1302,7 @@ function timeCanvasY(){ return state.timePosition.y / (state.pageHeight / PT_PER
 function materialCanvasX(){ return state.materialPosition.x / (state.pageWidth / PT_PER_MM) * pageCanvas.width; }
 function materialCanvasY(){ return state.materialPosition.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height; }
 function selectedStamp(){ return state.stampLibrary.find(s => s.id === state.selectedStampId) || null; }
-function timePreviewFontSize(){ return Math.max(12, TIME_FONT_SIZE_PT * (pageCanvas.height / state.pageHeight)); }
+function timePreviewFontSize(){ return Math.max(12, TIME_FONT_SIZE_PT * PRINT_TEXT_SCALE * (pageCanvas.height / state.pageHeight)); }
 function timeMarkerSize(){
   const fontSize = timePreviewFontSize();
   const label = formatTime(new Date(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
@@ -1345,11 +1353,12 @@ function markerSize(which) {
 }
 
 function materialPreviewMetrics() {
-  const fontSize = Math.max(8, MATERIAL_FONT_SIZE_PT * (pageCanvas.height / state.pageHeight));
-  const rowGap = MATERIAL_ROW_GAP_PT * (pageCanvas.height / state.pageHeight);
+  const fontSize = Math.max(8, MATERIAL_FONT_SIZE_PT * PRINT_TEXT_SCALE * (pageCanvas.height / state.pageHeight));
+  const rowGap = MATERIAL_ROW_GAP_PT * PRINT_TEXT_SCALE * (pageCanvas.height / state.pageHeight);
+  const extraGap = MATERIAL_EXTRA_GAP_AFTER_2 * PRINT_TEXT_SCALE * (pageCanvas.height / state.pageHeight);
   const dispatchOffset = MATERIAL_DISPATCH_OFFSET_MM / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
   const codeOffset = MATERIAL_CODE_OFFSET_MM / (state.pageWidth / PT_PER_MM) * pageCanvas.width;
-  return { fontSize, rowGap, dispatchOffset, codeOffset };
+  return { fontSize, rowGap, extraGap, dispatchOffset, codeOffset };
 }
 
 function materialBlockBoundsCanvas() {
@@ -1361,11 +1370,13 @@ function materialBlockBoundsCanvas() {
   const articleWidth = Math.max(...MATERIAL_ROWS.map(row => mctx.measureText(row.article).width));
   const codeWidth = Math.max(...MATERIAL_ROWS.map(row => mctx.measureText(row.code).width));
   mctx.restore();
+  const rowCount = MATERIAL_ROWS.length;
+  const extraHeight = rowCount > 2 ? metrics.extraGap : 0;
   return {
     x: anchorX - articleWidth - 6,
     y: anchorY - metrics.fontSize,
     w: articleWidth + metrics.codeOffset + codeWidth + 12,
-    h: metrics.fontSize + metrics.rowGap + (MATERIAL_EXTRA_GAP_AFTER_2 * (pageCanvas.height / state.pageHeight)) + 6,
+    h: metrics.fontSize + Math.max(0, rowCount - 1) * metrics.rowGap + extraHeight + 6,
     anchorX,
     anchorY,
   };
@@ -1599,7 +1610,7 @@ function drawMaterialPreview() {
   mctx.textBaseline = 'alphabetic';
   mctx.fillStyle = '#050505';
   MATERIAL_ROWS.forEach((row, index) => {
-    const extra = index >= 2 ? MATERIAL_EXTRA_GAP_AFTER_2 : 0;
+    const extra = index >= 2 ? metrics.extraGap : 0;
     const y = anchorY + index * metrics.rowGap + extra;
     mctx.textAlign = 'right';
     mctx.fillText(row.article, anchorX, y);
@@ -2029,7 +2040,13 @@ function loadSettings() {
     if (s.stampPosition) state.stampPosition = s.stampPosition;
     if (s.stamp2Position) state.stamp2Position = s.stamp2Position;
     if (s.materialPosition) state.materialPosition = s.materialPosition;
+    if (state.materialPosition.x === 64 && (state.materialPosition.y === 211.5 || state.materialPosition.y === 202.5)) {
+      state.materialPosition = { x: 64, y: 198 };
+    }
     if (s.timePosition) state.timePosition = s.timePosition;
+    if (state.timePosition.x === 74 && (state.timePosition.y === 236 || state.timePosition.y === 241)) {
+      state.timePosition = { x: 74, y: 238.5 };
+    }
     if (s.stampSize) state.stampSize = s.stampSize;
     if (Number.isFinite(s.stampRotation)) state.stampRotation = s.stampRotation;
     if (s.timeFormat) state.timeFormat = s.timeFormat;
