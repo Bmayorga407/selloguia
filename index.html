@@ -285,7 +285,7 @@ body::before{
 .main-content{
   display:flex;
   flex-direction:column;
-  padding:14px 20px 16px;
+  padding:10px 20px 8px;
   gap:14px;
   overflow:hidden;
   min-width:0;
@@ -453,7 +453,7 @@ body::before{
 .canvas-wrapper{
   position:relative;
   --page-aspect:0.7727;
-  width:min(100%,760px,calc((100dvh - 274px) * var(--page-aspect)));
+  width:min(100%,760px,calc((100dvh - 286px) * var(--page-aspect)));
   aspect-ratio:var(--page-aspect);
   border-radius:8px;
   overflow:hidden;
@@ -893,7 +893,7 @@ body::before{
 .history-empty{color:var(--text3);font-size:0.85rem;line-height:1.5;padding:18px;text-align:center}
 
 /* Responsive */
-@media(max-width:1080px){
+@media(max-width:860px){
   .workspace.active{grid-template-columns:1fr}
   .main-content{padding-bottom:118px}
   .canvas-wrapper{width:min(100%,660px,calc((100dvh - 318px) * var(--page-aspect)))}
@@ -1122,6 +1122,7 @@ const HISTORY_DB = 'selloguia_history_db';
 const HISTORY_STORE = 'pdfs';
 const HISTORY_LIMIT = 10;
 const TIME_FONT_SIZE_PT = 12;
+const TIME_PRINT_Y_OFFSET_PT = 2.5;
 const MATERIAL_FONT_SIZE_PT = 6.7;
 const MATERIAL_ROW_GAP_PT = 9;
 const MATERIAL_EXTRA_GAP_AFTER_2 = 8;
@@ -1805,7 +1806,7 @@ async function applyStamps() {
 
       if (state.timeEnabled) {
         const tx = state.timePosition.x * PT_PER_MM;
-        const ty = height - (state.timePosition.y * PT_PER_MM) - fontSize;
+        const ty = height - (state.timePosition.y * PT_PER_MM) - fontSize + TIME_PRINT_Y_OFFSET_PT;
         page.drawText(timeStr, { x: tx, y: ty, size: fontSize, font, color: PDFLib.rgb(0, 0, 0) });
       }
     }
