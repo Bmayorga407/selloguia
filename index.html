@@ -670,75 +670,54 @@ body::before{
   border:1px solid #0f7a4d;
   box-shadow:0 10px 22px rgba(17,139,88,0.20);
 }
-.side-history{
+.detection-panel{
   width:100%;
-  min-height:0;
-  flex:1;
   display:flex;
   flex-direction:column;
+  gap:10px;
   border-top:1px solid var(--border);
   padding-top:10px;
   margin-top:2px;
 }
-.side-history h3{
+.detection-panel h3{
   font-size:0.74rem;
   font-weight:700;
   color:var(--text3);
   text-transform:uppercase;
   letter-spacing:0;
-  margin-bottom:10px;
 }
-.side-history-list{
+.detection-list{
   display:flex;
   flex-direction:column;
-  gap:8px;
-  min-height:0;
-  flex:1;
-  overflow:auto;
-  padding-right:2px;
+  gap:6px;
 }
-.side-history-item{
+.detection-row{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
+  gap:12px;
   width:100%;
-  padding:10px;
+  padding:8px 10px;
   border:1px solid var(--border);
-  border-radius:12px;
+  border-radius:11px;
   background:var(--surface2);
   color:var(--text);
-  text-align:left;
-  font:inherit;
-  cursor:pointer;
-  transition:background-color var(--transition),border-color var(--transition),transform var(--transition);
 }
-.side-history-item:hover{
-  background:#fff;
-  border-color:var(--border-light);
-  transform:translateY(-1px);
-}
-.side-history-info{min-width:0;display:flex;flex-direction:column;gap:3px}
-.side-history-info strong{
-  font-size:0.78rem;
+.detection-row span:first-child{
+  min-width:0;
+  color:var(--text3);
+  font-size:0.75rem;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.side-history-info span{
+.detection-row strong{
   font-family:'DM Mono',monospace;
-  font-size:0.66rem;
-  color:var(--text3);
+  font-size:0.78rem;
+  color:var(--text);
   white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
 }
-.side-history-print{
-  flex-shrink:0;
-  color:var(--text3);
-  font-size:0.9rem;
-}
-.side-history-empty{
+.detection-empty{
   padding:12px;
   border:1px dashed var(--border);
   border-radius:12px;
@@ -916,7 +895,7 @@ body::before{
     justify-content:space-between;
     gap:8px;
   }
-  .side-history{display:none}
+  .detection-panel{display:none}
   .rotation-control,.size-control{max-width:220px;min-width:180px;padding:8px}
   .action-summary{min-width:220px;width:auto}
   .btn-main{width:auto;min-width:260px}
@@ -1036,10 +1015,10 @@ body::before{
           <input id="stampSizeInput" type="range" min="8" max="70" step="1" value="30" oninput="updateStampSize(this.value)">
           <div class="size-hint">Cambia el ancho; el alto se ajusta solo.</div>
         </div>
-        <div class="side-history">
-          <h3>Últimos sellados</h3>
-          <div class="side-history-list" id="sideHistoryList">
-            <div class="side-history-empty">Aquí aparecerán los últimos 5 PDFs sellados en este equipo.</div>
+        <div class="detection-panel">
+          <h3>Detectado</h3>
+          <div class="detection-list" id="detectionList">
+            <div class="detection-empty">Carga una guía para ver el análisis automático.</div>
           </div>
         </div>
       </div>
@@ -1194,7 +1173,7 @@ const stampSizeInput = $('stampSizeInput');
 const stampSizeValue = $('stampSizeValue');
 const toastContainer = $('toastContainer');
 const historyList = $('historyList');
-const sideHistoryList = $('sideHistoryList');
+const detectionList = $('detectionList');
 const pageCanvas = $('pageCanvas');
 const markerCanvas = $('markerCanvas');
 const canvasWrapper = $('canvasWrapper');
@@ -1217,7 +1196,7 @@ loadSettings();
 updateClock();
 setInterval(updateClock, 1000);
 syncInputsFromState();
-renderSideHistory();
+renderDetectionSummary();
 
 // ─── Drag & drop ──────────────────────────────────────────
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
@@ -2033,6 +2012,7 @@ async function loadPdf(file) {
     state.modifiedPdfBytes = copyBytes(state.pdfBytes);
     state.readyToPrint = false;
     updateApplyButton();
+    renderDetectionSummary();
 
     setStatus('ready', 'PDF cargado — ' + pages.length + ' página' + (pages.length !== 1 ? 's' : ''));
     if (state.stampTimeFromFile) {
@@ -2166,7 +2146,7 @@ async function applyStamps() {
     state.modifiedPdfBytes = await pdfDoc.save();
     state.readyToPrint = true;
     await saveToHistory(state.modifiedPdfBytes);
-    await renderSideHistory();
+    renderDetectionSummary();
     updateApplyButton();
     setStatus('ready', 'Sellos aplicados — listo para imprimir');
   } catch (err) {
@@ -2371,26 +2351,27 @@ async function openHistoryModal() {
   }
 }
 
-async function renderSideHistory() {
-  if (!sideHistoryList) return;
-  try {
-    const items = await historyAll();
-    if (!items.length) {
-      sideHistoryList.innerHTML = '<div class="side-history-empty">Aquí aparecerán los últimos 5 PDFs sellados en este equipo.</div>';
-      return;
-    }
-    sideHistoryList.innerHTML = items.slice(0, HISTORY_LIMIT).map(item => `
-      <button class="side-history-item" type="button" onclick="printHistoryPdf('${item.id}')" aria-label="Imprimir ${escapeHtml(item.name)}">
-        <span class="side-history-info">
-          <strong>${escapeHtml(shortFileName(item.name))}</strong>
-          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'}${item.materialCount ? ' · material ' + item.materialCount : ''} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
-        </span>
-        <span class="side-history-print" aria-hidden="true">↗</span>
-      </button>
-    `).join('');
-  } catch (err) {
-    sideHistoryList.innerHTML = '<div class="side-history-empty">No se pudo abrir el historial local.</div>';
+function renderDetectionSummary() {
+  if (!detectionList) return;
+  if (!state.pdfDoc) {
+    detectionList.innerHTML = '<div class="detection-empty">Carga una guía para ver el análisis automático.</div>';
+    return;
   }
+  const truckCount = state.materialTrucks.length;
+  const superlitroCount = Object.values(state.plasticTotals || {})
+    .filter(item => Number(item?.total) > 0 || Number(item?.bottleTotal) > 0).length;
+  const rows = [
+    ['Páginas', state.pageCount],
+    ['Camiones', truckCount || 'No detectado'],
+    ['Superlitro', superlitroCount ? superlitroCount + (superlitroCount === 1 ? ' camión' : ' camiones') : 'Sin datos'],
+    ['Preventa', state.dispatchData?.matchedCount ? state.dispatchData.matchedCount + ' encontrados' : 'No conectada'],
+  ];
+  detectionList.innerHTML = rows.map(([label, value]) => `
+    <div class="detection-row">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `).join('');
 }
 
 function closeHistoryModal() {
@@ -2737,9 +2718,11 @@ function updateApplyButton() {
   btnApply.textContent = hasMaterialTargets && parts.length === 1 ? '✦ Aplicar material' : '✦ Aplicar cambios';
   actionIcon.textContent = '✦';
   actionTitle.textContent = 'Lista para aplicar';
+  const superlitroCount = Object.values(state.plasticTotals || {})
+    .filter(item => Number(item?.total) > 0 || Number(item?.bottleTotal) > 0).length;
   actionHint.textContent = hasMaterialTargets
     ? label + ' · ' + state.materialPages.length + ' primera' + (state.materialPages.length !== 1 ? 's' : '') + ' hoja' + (state.materialPages.length !== 1 ? 's' : '') + ' de camión.'
-    : 'Aplicará ' + label + ' en ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '') + '.';
+    : 'Aplicará ' + label + ' en ' + state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '') + (superlitroCount ? ' · Superlitro en ' + superlitroCount + (superlitroCount === 1 ? ' camión' : ' camiones') : '') + '.';
 }
 
 // ─── Reset ────────────────────────────────────────────────
@@ -2766,6 +2749,7 @@ function resetAll() {
   pageCanvas.width = 0; pageCanvas.height = 0;
   markerCanvas.width = 0; markerCanvas.height = 0;
   updateApplyButton();
+  renderDetectionSummary();
   setStatus('idle', 'Listo');
 }
 
