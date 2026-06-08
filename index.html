@@ -1163,6 +1163,7 @@ const BOTTLE_UNIT_FACTORS = {
 };
 const PLASTIC_TOTAL_FONT_SIZE_PT = 7.2;
 const PLASTIC_TOTAL_X_PT = 320;
+const PACKAGE_TOTAL_VALUE_GAP_PT = 9;
 const PACKAGE_TOTAL_ROW_GAP_PT = 10;
 const PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM = 188;
 const MATERIAL_ROWS = [
@@ -2260,12 +2261,20 @@ function drawPlasticTotalOnPdfPage(page, font, pageHeight, info) {
   const fallbackY = pageHeight - (PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM * PT_PER_MM);
   const y = Number.isFinite(info.y) ? Math.max(120, info.y - 14) : fallbackY;
   const rows = [];
-  if (Number(info.total) > 0) rows.push('Total plasticos Superlitro Coca Cola: ' + info.total);
-  if (Number(info.bottleTotal) > 0) rows.push('Total botellas Superlitro Coca Cola: ' + info.bottleTotal);
-  rows.forEach((label, index) => {
-    page.drawText(label, {
+  if (Number(info.total) > 0) rows.push({ label: 'Total plasticos Superlitro Coca Cola:', value: String(info.total) });
+  if (Number(info.bottleTotal) > 0) rows.push({ label: 'Total botellas Superlitro Coca Cola:', value: String(info.bottleTotal) });
+  rows.forEach((row, index) => {
+    const rowY = y - (index * PACKAGE_TOTAL_ROW_GAP_PT);
+    page.drawText(row.label, {
       x,
-      y: y - (index * PACKAGE_TOTAL_ROW_GAP_PT),
+      y: rowY,
+      size: fontSize,
+      font,
+      color: PDFLib.rgb(0, 0, 0),
+    });
+    page.drawText(row.value, {
+      x: x + font.widthOfTextAtSize(row.label, fontSize) + PACKAGE_TOTAL_VALUE_GAP_PT,
+      y: rowY,
       size: fontSize,
       font,
       color: PDFLib.rgb(0, 0, 0),
