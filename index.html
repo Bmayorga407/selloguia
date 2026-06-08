@@ -1154,8 +1154,16 @@ const MATERIAL_DEVOLUTION_OFFSET_MM = 36.0;
 const LOAD_LABEL_POSITION_MM = { x: 52, y: 35.5 };
 const LOAD_LABEL_FONT_SIZE_PT = 5.6;
 const PLASTIC_CODES = new Set(['6139', '6120', '6110', '6014', '6133']);
+const BOTTLE_UNIT_FACTORS = {
+  '4029': 5,
+  '4128': 6,
+  '4138': 4,
+  '4002': 6,
+  '4021': 6,
+};
 const PLASTIC_TOTAL_FONT_SIZE_PT = 7.2;
-const PLASTIC_TOTAL_X_PT = 306;
+const PLASTIC_TOTAL_X_PT = 320;
+const PACKAGE_TOTAL_ROW_GAP_PT = 10;
 const PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM = 188;
 const MATERIAL_ROWS = [
   { article: 'CONSUMO', dispatch: '1', code: '113', devolution: '' },
@@ -1432,11 +1440,12 @@ function plasticInfoForTruck(truck) {
 }
 
 function plasticInfoForPage(pageIndex) {
-  return Object.values(state.plasticTotals || {}).find(item => Number(item?.total) > 0 && item.pageIndex === pageIndex) || null;
+  return Object.values(state.plasticTotals || {})
+    .find(item => (Number(item?.total) > 0 || Number(item?.bottleTotal) > 0) && item.pageIndex === pageIndex) || null;
 }
 
 function hasPlasticTotals() {
-  return Object.values(state.plasticTotals || {}).some(item => Number(item?.total) > 0);
+  return Object.values(state.plasticTotals || {}).some(item => Number(item?.total) > 0 || Number(item?.bottleTotal) > 0);
 }
 
 function materialBlockBoundsCanvas() {
@@ -1812,7 +1821,7 @@ async function analyzeMaterialPages(bytes) {
 
 function analyzePlasticRows(items) {
   const lines = groupTextItemsByLine(items);
-  const hits = [];
+  const result = { plastics: [], bottles: [] };
   lines.forEach(line => {
     const columns = [
       line.words.filter(word => word.x < 300),
@@ -1822,11 +1831,11 @@ function analyzePlasticRows(items) {
       const text = words.map(word => word.text).join(' ').replace(/\s+/g, ' ').trim();
       if (!text) return;
       PLASTIC_CODES.forEach(code => {
-        const matches = [...text.matchAll(new RegExp('([\\d.]+)\\s*/\\s*0\\s+' + code + '(?=\\s|$)', 'g'))];
+        const matches = [...text.matchAll(new RegExp('([\\d.]+)\\s*/\\s*[\\d.]+\\s+' + code + '(?=\\s|$)', 'g'))];
         matches.forEach(match => {
           const quantity = Number(String(match[1]).replace(/\./g, ''));
           if (!Number.isFinite(quantity)) return;
-          hits.push({
+          result.plastics.push({
             code,
             quantity,
             x: words[0]?.x || PLASTIC_TOTAL_X_PT,
@@ -1834,9 +1843,26 @@ function analyzePlasticRows(items) {
           });
         });
       });
+      Object.entries(BOTTLE_UNIT_FACTORS).forEach(([code, unitsPerBox]) => {
+        const matches = [...text.matchAll(new RegExp('([\\d.]+)\\s*/\\s*([\\d.]+)\\s+' + code + '(?=\\s|$)', 'g'))];
+        matches.forEach(match => {
+          const boxes = Number(String(match[1]).replace(/\./g, ''));
+          const looseUnits = Number(String(match[2]).replace(/\./g, ''));
+          if (!Number.isFinite(boxes) || !Number.isFinite(looseUnits)) return;
+          result.bottles.push({
+            code,
+            boxes,
+            looseUnits,
+            unitsPerBox,
+            quantity: boxes * unitsPerBox + looseUnits,
+            x: words[0]?.x || PLASTIC_TOTAL_X_PT,
+            y: line.y,
+          });
+        });
+      });
     });
   });
-  return hits;
+  return result;
 }
 
 function groupTextItemsByLine(items) {
@@ -1866,16 +1892,40 @@ function groupTextItemsByLine(items) {
 function summarizePlasticTotals(pageRecords) {
   const totals = {};
   pageRecords.forEach(record => {
-    if (!record.truck || !record.plastic.length) return;
+    if (!record.truck || (!record.plastic.plastics.length && !record.plastic.bottles.length)) return;
     if (!totals[record.truck]) {
-      totals[record.truck] = { total: 0, pageIndex: record.pageIndex, y: null, hits: [] };
+      totals[record.truck] = {
+        total: 0,
+        bottleTotal: 0,
+        pageIndex: record.pageIndex,
+        y: null,
+        hits: [],
+        bottleHits: [],
+      };
     }
     const current = totals[record.truck];
-    record.plastic.forEach(hit => {
-      current.total += hit.quantity;
+    const allHits = [...record.plastic.plastics, ...record.plastic.bottles];
+    if (allHits.length && record.pageIndex !== current.pageIndex) {
       current.pageIndex = record.pageIndex;
+      current.y = null;
+    }
+    allHits.forEach(hit => {
       current.y = current.y === null ? hit.y : Math.min(current.y, hit.y);
+    });
+    record.plastic.plastics.forEach(hit => {
+      current.total += hit.quantity;
       current.hits.push({ pageIndex: record.pageIndex, code: hit.code, quantity: hit.quantity });
+    });
+    record.plastic.bottles.forEach(hit => {
+      current.bottleTotal += hit.quantity;
+      current.bottleHits.push({
+        pageIndex: record.pageIndex,
+        code: hit.code,
+        boxes: hit.boxes,
+        looseUnits: hit.looseUnits,
+        unitsPerBox: hit.unitsPerBox,
+        quantity: hit.quantity,
+      });
     });
   });
   return totals;
@@ -2206,16 +2256,20 @@ function drawLoadLabelOnPdfPage(page, font, pageHeight, label) {
 
 function drawPlasticTotalOnPdfPage(page, font, pageHeight, info) {
   const fontSize = PLASTIC_TOTAL_FONT_SIZE_PT;
-  const label = 'Total plasticos Coca Cola: ' + info.total;
   const x = PLASTIC_TOTAL_X_PT;
   const fallbackY = pageHeight - (PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM * PT_PER_MM);
   const y = Number.isFinite(info.y) ? Math.max(120, info.y - 14) : fallbackY;
-  page.drawText(label, {
-    x,
-    y,
-    size: fontSize,
-    font,
-    color: PDFLib.rgb(0, 0, 0),
+  const rows = [];
+  if (Number(info.total) > 0) rows.push('Total plasticos grandes Coca Cola: ' + info.total);
+  if (Number(info.bottleTotal) > 0) rows.push('Total botellas grandes Coca Cola: ' + info.bottleTotal);
+  rows.forEach((label, index) => {
+    page.drawText(label, {
+      x,
+      y: y - (index * PACKAGE_TOTAL_ROW_GAP_PT),
+      size: fontSize,
+      font,
+      color: PDFLib.rgb(0, 0, 0),
+    });
   });
 }
 
