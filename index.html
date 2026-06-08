@@ -1111,6 +1111,7 @@ const state = {
   materialEnabled: false,
   dispatchDate: '',
   dispatchData: null,
+  plasticTotals: {},
   stampPosition: { x: 5, y: 234 },
   stamp2Position: { x: 120, y: 232 },
   materialPosition: { x: 64, y: 198 },
@@ -1152,6 +1153,10 @@ const MATERIAL_CODE_OFFSET_MM = 22.2;
 const MATERIAL_DEVOLUTION_OFFSET_MM = 36.0;
 const LOAD_LABEL_POSITION_MM = { x: 52, y: 35.5 };
 const LOAD_LABEL_FONT_SIZE_PT = 5.6;
+const PLASTIC_CODES = new Set(['6139', '6120', '6110', '6014', '6133']);
+const PLASTIC_TOTAL_FONT_SIZE_PT = 7.2;
+const PLASTIC_TOTAL_X_PT = 306;
+const PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM = 188;
 const MATERIAL_ROWS = [
   { article: 'CONSUMO', dispatch: '1', code: '113', devolution: '' },
   { article: 'PLASTICOS VACIOS', dispatch: '5', code: '6133', devolution: '' },
@@ -1420,6 +1425,18 @@ function loadLabelForTruck(truck) {
 
 function hasDispatchLoads() {
   return Object.values(state.dispatchData?.byTruck || {}).some(item => item?.loads?.length);
+}
+
+function plasticInfoForTruck(truck) {
+  return truck && state.plasticTotals ? state.plasticTotals[truck] || null : null;
+}
+
+function plasticInfoForPage(pageIndex) {
+  return Object.values(state.plasticTotals || {}).find(item => Number(item?.total) > 0 && item.pageIndex === pageIndex) || null;
+}
+
+function hasPlasticTotals() {
+  return Object.values(state.plasticTotals || {}).some(item => Number(item?.total) > 0);
 }
 
 function materialBlockBoundsCanvas() {
@@ -1766,23 +1783,102 @@ async function handleFileSelect(e) {
 }
 
 async function analyzeMaterialPages(bytes) {
-  const result = { pages: [], trucks: [], dispatchDate: '' };
+  const result = { pages: [], trucks: [], dispatchDate: '', plasticTotals: {} };
   if (typeof pdfjsLib === 'undefined') return result;
   const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(bytes) }).promise;
   let previousTruck = null;
+  const pageRecords = [];
   for (let pageIndex = 0; pageIndex < pdfDoc.numPages; pageIndex++) {
     const page = await pdfDoc.getPage(pageIndex + 1);
     const textContent = await page.getTextContent();
     const text = textContent.items.map(item => item.str || '').join(' ');
     if (!result.dispatchDate) result.dispatchDate = detectGuideDate(text);
-    const truck = detectTruckCode(text);
+    const truck = detectTruckCodeFromItems(textContent.items) || detectTruckCode(text);
+    const activeTruck = truck || previousTruck || '';
+    pageRecords.push({
+      pageIndex,
+      truck: activeTruck,
+      plastic: analyzePlasticRows(textContent.items),
+    });
     if (truck && truck !== previousTruck) {
       result.pages.push(pageIndex);
       result.trucks.push(truck);
     }
     if (truck) previousTruck = truck;
   }
+  result.plasticTotals = summarizePlasticTotals(pageRecords);
   return result;
+}
+
+function analyzePlasticRows(items) {
+  const lines = groupTextItemsByLine(items);
+  const hits = [];
+  lines.forEach(line => {
+    const columns = [
+      line.words.filter(word => word.x < 300),
+      line.words.filter(word => word.x >= 300),
+    ];
+    columns.forEach(words => {
+      const text = words.map(word => word.text).join(' ').replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      PLASTIC_CODES.forEach(code => {
+        const matches = [...text.matchAll(new RegExp('([\\d.]+)\\s*/\\s*0\\s+' + code + '(?=\\s|$)', 'g'))];
+        matches.forEach(match => {
+          const quantity = Number(String(match[1]).replace(/\./g, ''));
+          if (!Number.isFinite(quantity)) return;
+          hits.push({
+            code,
+            quantity,
+            x: words[0]?.x || PLASTIC_TOTAL_X_PT,
+            y: line.y,
+          });
+        });
+      });
+    });
+  });
+  return hits;
+}
+
+function groupTextItemsByLine(items) {
+  const words = [];
+  items.forEach(item => {
+    const text = String(item.str || '').trim();
+    if (!text) return;
+    const transform = item.transform || [];
+    const x = Number(transform[4]) || 0;
+    const y = Number(transform[5]) || 0;
+    text.split(/\s+/).filter(Boolean).forEach(part => words.push({ text: part, x, y }));
+  });
+  const lines = [];
+  words.sort((a, b) => Math.abs(b.y - a.y) > 2.5 ? b.y - a.y : a.x - b.x).forEach(word => {
+    const line = lines.find(candidate => Math.abs(candidate.y - word.y) < 2.5);
+    if (line) {
+      line.words.push(word);
+      line.y = (line.y + word.y) / 2;
+    } else {
+      lines.push({ y: word.y, words: [word] });
+    }
+  });
+  lines.forEach(line => line.words.sort((a, b) => a.x - b.x));
+  return lines;
+}
+
+function summarizePlasticTotals(pageRecords) {
+  const totals = {};
+  pageRecords.forEach(record => {
+    if (!record.truck || !record.plastic.length) return;
+    if (!totals[record.truck]) {
+      totals[record.truck] = { total: 0, pageIndex: record.pageIndex, y: null, hits: [] };
+    }
+    const current = totals[record.truck];
+    record.plastic.forEach(hit => {
+      current.total += hit.quantity;
+      current.pageIndex = record.pageIndex;
+      current.y = current.y === null ? hit.y : Math.min(current.y, hit.y);
+      current.hits.push({ pageIndex: record.pageIndex, code: hit.code, quantity: hit.quantity });
+    });
+  });
+  return totals;
 }
 
 function detectGuideDate(text) {
@@ -1798,10 +1894,26 @@ function detectGuideDate(text) {
 
 function detectTruckCode(text) {
   const normalized = String(text || '').replace(/\s+/g, ' ').trim();
-  const direct = normalized.match(/CONCEPCION\s+([0-9]{3,5}[A-Z])/i);
+  const direct = normalized.match(/CONCEPCION\s+\d{2}\/\d{2}\/\d{4}\s+\d+\s+([0-9]{3,5}[A-Z])/i);
   if (direct) return direct[1].toUpperCase();
+  const compactHeader = normalized.match(/\b(\d{3,5}[A-Z])\s+Basis:/i);
+  if (compactHeader) return compactHeader[1].toUpperCase();
   const fallback = normalized.match(/\b([0-9]{3,5}[A-Z])\b\s+NI:/i);
   return fallback ? fallback[1].toUpperCase() : null;
+}
+
+function detectTruckCodeFromItems(items) {
+  const candidates = items
+    .map(item => ({
+      text: String(item.str || '').trim(),
+      x: Number(item.transform?.[4]) || 0,
+      y: Number(item.transform?.[5]) || 0,
+    }))
+    .filter(item => /^[0-9]{3,5}[A-Z]$/.test(item.text));
+  const header = candidates.find(item => item.x >= 200 && item.x <= 270 && item.y >= 645 && item.y <= 670);
+  if (header) return header.text.toUpperCase();
+  const viaje = candidates.find(item => item.x >= 520 && item.y >= 630 && item.y <= 650);
+  return viaje ? viaje.text.toUpperCase() : null;
 }
 
 async function loadPdf(file) {
@@ -1825,6 +1937,7 @@ async function loadPdf(file) {
     const materialAnalysis = await analyzeMaterialPages(state.pdfBytes);
     state.materialPages = materialAnalysis.pages;
     state.materialTrucks = materialAnalysis.trucks;
+    state.plasticTotals = materialAnalysis.plasticTotals || {};
     state.dispatchDate = materialAnalysis.dispatchDate;
     state.dispatchData = null;
     await loadDispatchData();
@@ -1929,7 +2042,8 @@ function handlePrimaryAction() {
 
 async function applyStamps() {
   const hasMaterialTargets = state.materialEnabled && state.materialPages.length > 0;
-  if (!state.pdfDoc || (!state.stampEnabled && !state.timeEnabled && !hasMaterialTargets)) {
+  const hasPlasticTargets = hasPlasticTotals();
+  if (!state.pdfDoc || (!state.stampEnabled && !state.timeEnabled && !hasMaterialTargets && !hasPlasticTargets)) {
     toast('Activa timbre, hora o material operativo para aplicar', 'error');
     return;
   }
@@ -1958,7 +2072,7 @@ async function applyStamps() {
         ? await pdfDoc.embedPng(stampBytes)
         : await pdfDoc.embedJpg(stampBytes);
     }
-    const needsTextFont = state.timeEnabled || state.materialEnabled || hasDispatchLoads();
+    const needsTextFont = state.timeEnabled || state.materialEnabled || hasDispatchLoads() || hasPlasticTargets;
     const font = needsTextFont ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
     const timeStr = formatTime(getStampTime(), state.timeFormat);
     const fontSize = TIME_FONT_SIZE_PT * PRINT_TEXT_SCALE;
@@ -1984,6 +2098,11 @@ async function applyStamps() {
       const loadLabel = loadLabelForTruck(truckForPage(pageIndex));
       if (loadLabel && font) {
         drawLoadLabelOnPdfPage(page, font, height, loadLabel);
+      }
+
+      const plasticInfo = plasticInfoForPage(pageIndex);
+      if (plasticInfo && font) {
+        drawPlasticTotalOnPdfPage(page, font, height, plasticInfo);
       }
 
       if (state.timeEnabled) {
@@ -2076,6 +2195,21 @@ function drawLoadLabelOnPdfPage(page, font, pageHeight, label) {
   const fontSize = LOAD_LABEL_FONT_SIZE_PT * PRINT_TEXT_SCALE;
   const x = LOAD_LABEL_POSITION_MM.x * PT_PER_MM;
   const y = pageHeight - (LOAD_LABEL_POSITION_MM.y * PT_PER_MM);
+  page.drawText(label, {
+    x,
+    y,
+    size: fontSize,
+    font,
+    color: PDFLib.rgb(0, 0, 0),
+  });
+}
+
+function drawPlasticTotalOnPdfPage(page, font, pageHeight, info) {
+  const fontSize = PLASTIC_TOTAL_FONT_SIZE_PT;
+  const label = 'Total plasticos Coca Cola: ' + info.total;
+  const x = PLASTIC_TOTAL_X_PT;
+  const fallbackY = pageHeight - (PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM * PT_PER_MM);
+  const y = Number.isFinite(info.y) ? Math.max(120, info.y - 14) : fallbackY;
   page.drawText(label, {
     x,
     y,
@@ -2498,7 +2632,8 @@ function updateApplyButton() {
   const hasPdf = Boolean(state.pdfDoc);
   const hasStamp = Boolean(state.selectedStampId);
   const hasMaterialTargets = state.materialEnabled && state.materialPages.length > 0;
-  const hasAnyMarker = state.stampEnabled || state.timeEnabled || hasMaterialTargets;
+  const hasPlasticTargets = hasPlasticTotals();
+  const hasAnyMarker = state.stampEnabled || state.timeEnabled || hasMaterialTargets || hasPlasticTargets;
   const canApply = hasPdf && hasAnyMarker && (!state.stampEnabled || hasStamp);
   document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && canApply));
   btnApply.disabled = !canApply;
@@ -2534,6 +2669,7 @@ function updateApplyButton() {
   if (state.stampEnabled) parts.push(state.doubleStamp ? '2 sellos' : 'sello');
   if (state.timeEnabled) parts.push('hora');
   if (hasMaterialTargets) parts.push('material');
+  if (hasPlasticTargets) parts.push('plásticos');
   const label = parts.join(', ').replace(/, ([^,]*)$/, ' y $1');
   btnApply.textContent = hasMaterialTargets && parts.length === 1 ? '✦ Aplicar material' : '✦ Aplicar cambios';
   actionIcon.textContent = '✦';
@@ -2555,6 +2691,9 @@ function resetAll() {
   syncInputsFromState();
   state.materialPages = [];
   state.materialTrucks = [];
+  state.plasticTotals = {};
+  state.dispatchDate = '';
+  state.dispatchData = null;
   state.readyToPrint = false;
   canvasWrapper.style.setProperty('--page-aspect', DEFAULT_PAGE_POINTS.width / DEFAULT_PAGE_POINTS.height);
   uploadZone.style.display = '';
