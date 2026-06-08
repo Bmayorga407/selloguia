@@ -2260,8 +2260,8 @@ function drawPlasticTotalOnPdfPage(page, font, pageHeight, info) {
   const fallbackY = pageHeight - (PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM * PT_PER_MM);
   const y = Number.isFinite(info.y) ? Math.max(120, info.y - 14) : fallbackY;
   const rows = [];
-  if (Number(info.total) > 0) rows.push('Total plasticos grandes Coca Cola: ' + info.total);
-  if (Number(info.bottleTotal) > 0) rows.push('Total botellas grandes Coca Cola: ' + info.bottleTotal);
+  if (Number(info.total) > 0) rows.push('Total plasticos Superlitro Coca Cola: ' + info.total);
+  if (Number(info.bottleTotal) > 0) rows.push('Total botellas Superlitro Coca Cola: ' + info.bottleTotal);
   rows.forEach((label, index) => {
     page.drawText(label, {
       x,
