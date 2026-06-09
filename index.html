@@ -3120,7 +3120,7 @@ async function loadHistoryPdf(item) {
 
     state.pdfBytes = copyBytes(item.bytes);
     state.currentFileName = item.sourceFileName || 'historial.pdf';
-    state.stampTimeFromFile = null;
+    state.stampTimeFromFile = parseTimeFromFileName(item.sourceFileName);
     updateTimeLabel();
     updateClock();
     state.pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
@@ -3130,7 +3130,14 @@ async function loadHistoryPdf(item) {
     state.materialTrucks = [item.truck || ''];
     state.plasticTotals = {};
     state.dispatchDate = item.dispatchDate || '';
-    state.dispatchData = null;
+    state.dispatchData = {
+      byTruck: {
+        [item.truck]: {
+          truck: item.truck,
+          loads: (item.loads || '').split(' / ').filter(Boolean).map(c => ({ carga: c })),
+        }
+      }
+    };
     state.selectedTruckIndex = 0;
     state.currentPageIndex = 0;
 
