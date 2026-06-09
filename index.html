@@ -2896,6 +2896,7 @@ async function saveTruckHistoryItems() {
       pageCount: pageIndexes.length,
       stampName: state.stampEnabled ? ((selectedStamp()?.name || 'Timbre') + (state.doubleStamp ? ' x2' : '')) : 'Sin timbre',
       timeEnabled: state.timeEnabled,
+      timeLabel: state.timeEnabled ? formatTime(getStampTime(), 'HH:mm') : 'sin hora',
       materialCount: state.materialEnabled ? 1 : 0,
       dispatchDate: state.dispatchDate || '',
       sourceFileName: state.currentFileName || '',
@@ -3073,7 +3074,17 @@ function historyItemMeta(item) {
   const parts = [];
   if (item.type === 'truck' && item.loads) parts.push('Carga/s ' + item.loads);
   if (item.dispatchDate) parts.push(formatDispatchDate(item.dispatchDate));
-  parts.push(item.timeEnabled === false ? 'sin hora' : 'con hora');
+  
+  let timeStr = 'sin hora';
+  if (item.timeEnabled !== false) {
+    if (item.timeLabel) {
+      timeStr = item.timeLabel;
+    } else {
+      const parsed = parseTimeFromFileName(item.sourceFileName);
+      timeStr = parsed ? formatTime(parsed, 'HH:mm') : 'con hora';
+    }
+  }
+  parts.push(timeStr);
   parts.push((item.pageCount || 0) + ' hoja' + (item.pageCount !== 1 ? 's' : ''));
   return parts.join(' · ');
 }
