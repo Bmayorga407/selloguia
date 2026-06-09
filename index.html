@@ -1326,6 +1326,7 @@ body::before{
     <p class="history-intro">Revisa camiones guardados por fecha de guía.</p>
     <div class="history-day-tabs" id="historyDayTabs" aria-label="Días guardados"></div>
     <div class="history-summary" id="historySummary" style="display:none"></div>
+    <div class="history-search-container" id="historySearchContainer"></div>
     <div class="history-list" id="historyList">
       <div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>
     </div>
@@ -1446,6 +1447,7 @@ const toastContainer = $('toastContainer');
 const historyList = $('historyList');
 const historyDayTabs = $('historyDayTabs');
 const historySummary = $('historySummary');
+const historySearchContainer = $('historySearchContainer');
 const detectionList = $('detectionList');
 const truckList = $('truckList');
 const loadingPanel = $('loadingPanel');
@@ -2982,37 +2984,21 @@ async function selectHistoryDay(dayKey) {
   renderHistoryForDay(currentHistoryGroups, selectedHistoryDay);
 }
 
-function renderHistoryForDay(groups, dayKey) {
-  const group = groups.find(item => item.key === dayKey) || groups[0];
-  if (!group) {
-    historySummary.style.display = 'none';
-    historyList.innerHTML = '<div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>';
+function filterHistoryItems(group, query) {
+  if (!query.trim()) return group.items;
+  const q = query.trim().toLowerCase();
+  return group.items.filter(item =>
+    String(item.truck || '').toLowerCase().includes(q) ||
+    String(item.name || '').toLowerCase().includes(q)
+  );
+}
+
+function renderHistoryList(items) {
+  if (!items.length) {
+    historyList.innerHTML = '<div class="history-empty">No se encontraron camiones con ese número.</div>';
     return;
   }
-  const query = historySearchQuery.trim().toLowerCase();
-  const filteredItems = query
-    ? group.items.filter(item =>
-        String(item.truck || '').toLowerCase().includes(query) ||
-        String(item.name || '').toLowerCase().includes(query)
-      )
-    : group.items;
-  const truckCount = group.items.filter(item => item.type === 'truck').length;
-  const filteredCount = filteredItems.length;
-  historySummary.style.display = 'flex';
-  historySummary.innerHTML = `
-    <strong>${escapeHtml(group.label)}</strong>
-    <span>${truckCount || group.items.length} camión${(truckCount || group.items.length) !== 1 ? 'es' : ''} guardado${(truckCount || group.items.length) !== 1 ? 's' : ''}${query && filteredCount !== group.items.length ? ' · ' + filteredCount + ' coincidente' + (filteredCount !== 1 ? 's' : '') : ''}</span>
-  `;
-  const searchHtml = `
-    <div class="history-search">
-      <input type="text" class="history-search-input" placeholder="Buscar por número de camión..." value="${escapeHtml(historySearchQuery)}" oninput="historySearchQuery = this.value; renderHistoryForDay(currentHistoryGroups, '${escapeHtml(dayKey)}');">
-    </div>
-  `;
-  if (!filteredItems.length) {
-    historyList.innerHTML = searchHtml + '<div class="history-empty">No se encontraron camiones con ese número.</div>';
-    return;
-  }
-  historyList.innerHTML = searchHtml + filteredItems.map(item => `
+  historyList.innerHTML = items.map(item => `
       <div class="history-item">
         <div class="history-info">
           <strong>${escapeHtml(item.name)}</strong>
@@ -3024,6 +3010,55 @@ function renderHistoryForDay(groups, dayKey) {
   if (typeof gsap !== 'undefined' && !prefersReducedMotion()) {
     gsap.fromTo('.history-item', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.2, stagger: 0.035, ease: 'power2.out', clearProps: 'opacity,visibility,transform' });
   }
+}
+
+function renderHistoryForDay(groups, dayKey) {
+  const group = groups.find(item => item.key === dayKey) || groups[0];
+  if (!group) {
+    historySummary.style.display = 'none';
+    historySearchContainer.innerHTML = '';
+    historyList.innerHTML = '<div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>';
+    return;
+  }
+  const query = historySearchQuery.trim().toLowerCase();
+  const filteredItems = filterHistoryItems(group, historySearchQuery);
+  const truckCount = group.items.filter(item => item.type === 'truck').length;
+  const filteredCount = filteredItems.length;
+  historySummary.style.display = 'flex';
+  historySummary.innerHTML = `
+    <strong>${escapeHtml(group.label)}</strong>
+    <span>${truckCount || group.items.length} camión${(truckCount || group.items.length) !== 1 ? 'es' : ''} guardado${(truckCount || group.items.length) !== 1 ? 's' : ''}${query && filteredCount !== group.items.length ? ' · ' + filteredCount + ' coincidente' + (filteredCount !== 1 ? 's' : '') : ''}</span>
+  `;
+
+  // Renderizar buscador solo si no existe (para no perder el foco)
+  if (!historySearchContainer.querySelector('.history-search-input')) {
+    historySearchContainer.innerHTML = `
+      <div class="history-search">
+        <input type="text" class="history-search-input" id="historySearchInput" placeholder="Buscar por número de camión...">
+      </div>
+    `;
+    const input = historySearchContainer.querySelector('#historySearchInput');
+    if (input) {
+      input.value = historySearchQuery;
+      input.addEventListener('input', (e) => {
+        historySearchQuery = e.target.value;
+        const currentGroup = currentHistoryGroups.find(g => g.key === selectedHistoryDay) || currentHistoryGroups[0];
+        if (currentGroup) {
+          const filtered = filterHistoryItems(currentGroup, historySearchQuery);
+          renderHistoryList(filtered);
+          const q = historySearchQuery.trim().toLowerCase();
+          const truckCount = currentGroup.items.filter(item => item.type === 'truck').length;
+          const filteredCount = filtered.length;
+          historySummary.innerHTML = `
+            <strong>${escapeHtml(currentGroup.label)}</strong>
+            <span>${truckCount || currentGroup.items.length} camión${(truckCount || currentGroup.items.length) !== 1 ? 'es' : ''} guardado${(truckCount || currentGroup.items.length) !== 1 ? 's' : ''}${q && filteredCount !== currentGroup.items.length ? ' · ' + filteredCount + ' coincidente' + (filteredCount !== 1 ? 's' : '') : ''}</span>
+          `;
+        }
+      });
+    }
+  }
+
+  renderHistoryList(filteredItems);
 }
 
 function historyItemMeta(item) {
