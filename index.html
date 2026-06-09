@@ -1039,8 +1039,67 @@ body::before{
   transition:background var(--transition);
 }
 .modal input[type="file"]::file-selector-button:hover{background:var(--border)}
+.modal.history-modal{
+  max-width:640px;
+  padding:22px;
+}
+.history-modal h3{margin-bottom:6px}
+.history-intro{
+  color:var(--text3);
+  font-size:0.82rem;
+  margin-bottom:16px;
+}
+.history-day-tabs{
+  display:flex;
+  gap:8px;
+  overflow:auto;
+  padding-bottom:8px;
+  margin-bottom:10px;
+}
+.history-day-tab{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:112px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface2);
+  color:var(--text2);
+  padding:9px 10px;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  transition:background-color var(--transition),border-color var(--transition),box-shadow var(--transition),color var(--transition);
+}
+.history-day-tab strong{
+  color:var(--text);
+  font-size:0.82rem;
+}
+.history-day-tab span{
+  color:var(--text3);
+  font-family:'DM Mono',monospace;
+  font-size:0.68rem;
+}
+.history-day-tab.active{
+  background:#fff;
+  border-color:var(--red);
+  box-shadow:0 0 0 3px rgba(232,17,27,0.08);
+}
+.history-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+  margin-bottom:10px;
+}
+.history-summary strong{font-size:0.9rem}
+.history-summary span{color:var(--text3);font-size:0.76rem}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-.history-list{display:flex;flex-direction:column;gap:10px;max-height:360px;overflow:auto}
+.history-list{display:flex;flex-direction:column;gap:10px;max-height:390px;overflow:auto}
 .history-item{
   display:flex;
   align-items:center;
@@ -1260,8 +1319,11 @@ body::before{
 </div>
 
 <div class="modal-overlay" id="historyModal" style="display:none" onclick="if(event.target===this)closeHistoryModal()" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
-  <div class="modal">
-    <h3 id="historyModalTitle">Últimos PDFs sellados</h3>
+  <div class="modal history-modal">
+    <h3 id="historyModalTitle">Historial por día</h3>
+    <p class="history-intro">Revisa camiones guardados por fecha de guía.</p>
+    <div class="history-day-tabs" id="historyDayTabs" aria-label="Días guardados"></div>
+    <div class="history-summary" id="historySummary" style="display:none"></div>
     <div class="history-list" id="historyList">
       <div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>
     </div>
@@ -1325,7 +1387,8 @@ const copyBytes = bytes => new Uint8Array(bytes);
 const SETTINGS_VERSION = 2;
 const HISTORY_DB = 'selloguia_history_db';
 const HISTORY_STORE = 'pdfs';
-const HISTORY_LIMIT = 5;
+const HISTORY_LIMIT = 200;
+const HISTORY_MAX_DAYS = 3;
 const TIME_FONT_SIZE_PT = 12;
 const TIME_PRINT_Y_OFFSET_PT = 5;
 const MATERIAL_FONT_SIZE_PT = 6.7;
@@ -1379,6 +1442,8 @@ const stampSizeInput = $('stampSizeInput');
 const stampSizeValue = $('stampSizeValue');
 const toastContainer = $('toastContainer');
 const historyList = $('historyList');
+const historyDayTabs = $('historyDayTabs');
+const historySummary = $('historySummary');
 const detectionList = $('detectionList');
 const truckList = $('truckList');
 const loadingPanel = $('loadingPanel');
@@ -1395,6 +1460,7 @@ let dragOffset = { x: 0, y: 0 };
 let stampPreviewImage = null;
 let stampPreviewSource = '';
 let loadingTween = null;
+let selectedHistoryDay = '';
 
 // ─── Init ─────────────────────────────────────────────────
 if (typeof pdfjsLib !== 'undefined') {
@@ -1698,6 +1764,12 @@ function truckLoadValue(truck) {
   return info.loads.map(load => load.carga).join(' / ');
 }
 
+function truckLoadFileValue(truck) {
+  const info = dispatchInfoForTruck(truck);
+  if (!info?.loads?.length) return '';
+  return info.loads.map(load => load.carga).join(' / ');
+}
+
 function truckPageRange(index) {
   const start = state.materialPages[index];
   if (!Number.isInteger(start)) return { start: 0, end: 0, label: 'Sin hojas', shortLabel: 'Sin hojas', count: 0 };
@@ -1732,6 +1804,13 @@ function truckSummaries() {
       pageBadge: range.shortLabel,
     };
   });
+}
+
+function formatDispatchDate(dateValue) {
+  if (!dateValue) return 'Sin fecha';
+  const match = String(dateValue).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return dateValue;
+  return match[3] + '/' + match[2] + '/' + match[1];
 }
 
 async function selectTruckCard(index) {
@@ -2571,7 +2650,7 @@ async function applyStamps() {
   try {
     state.modifiedPdfBytes = await buildStampedPdfBytes();
     state.readyToPrint = true;
-    await saveToHistory(state.modifiedPdfBytes);
+    await saveTruckHistoryItems();
     renderDetectionSummary();
     updateApplyButton();
     setStatus('ready', 'Sellos aplicados — listo para imprimir');
@@ -2724,29 +2803,58 @@ async function historyAll() {
   });
 }
 
-async function saveToHistory(bytes) {
+async function saveHistoryItems(newItems) {
   try {
+    if (!newItems.length) return;
     const db = await openHistoryDb();
     const items = await historyAll();
-    const item = {
-      id: 'pdf_' + Date.now(),
-      name: state.currentFileName || 'guia_sellada.pdf',
-      pageCount: state.pageCount,
-      stampName: state.stampEnabled ? ((selectedStamp()?.name || 'Timbre') + (state.doubleStamp ? ' x2' : '')) : 'Sin timbre',
-      timeEnabled: state.timeEnabled,
-      materialCount: state.materialEnabled ? state.materialPages.length : 0,
-      createdAt: Date.now(),
-      bytes: copyBytes(bytes),
-    };
     const tx = db.transaction(HISTORY_STORE, 'readwrite');
     const store = tx.objectStore(HISTORY_STORE);
-    store.put(item);
-    [...items, item]
+
+    // 1. Reemplazar duplicados silenciosamente (mismo camión + fecha + carga)
+    const duplicateIds = [];
+    for (const newItem of newItems) {
+      if (newItem.type !== 'truck') continue;
+      const dup = items.find(old =>
+        old.type === 'truck' &&
+        old.truck === newItem.truck &&
+        old.dispatchDate === newItem.dispatchDate &&
+        old.loads === newItem.loads
+      );
+      if (dup) duplicateIds.push(dup.id);
+    }
+    duplicateIds.forEach(id => store.delete(id));
+
+    // 2. Guardar nuevos items
+    newItems.forEach(item => store.put(item));
+
+    // 3. Limpiar archivos con más de 3 días de antigüedad
+    const cutoffDate = Date.now() - (HISTORY_MAX_DAYS * 24 * 60 * 60 * 1000);
+    let removedCount = 0;
+    items.forEach(item => {
+      if (item.createdAt < cutoffDate && !duplicateIds.includes(item.id)) {
+        store.delete(item.id);
+        removedCount++;
+      }
+    });
+
+    // 4. Limpiar exceso por cantidad (límite de seguridad)
+    const remainingItems = items.filter(item =>
+      !duplicateIds.includes(item.id) && item.createdAt >= cutoffDate
+    );
+    [...remainingItems, ...newItems]
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(HISTORY_LIMIT)
       .forEach(oldItem => store.delete(oldItem.id));
+
     await new Promise((resolve, reject) => {
-      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.oncomplete = () => {
+        db.close();
+        if (removedCount > 0) {
+          toast(removedCount + ' archivo' + (removedCount !== 1 ? 's' : '') + ' antiguo' + (removedCount !== 1 ? 's' : '') + ' eliminado' + (removedCount !== 1 ? 's' : '') + ' automáticamente', 'info');
+        }
+        resolve();
+      };
       tx.onerror = () => { db.close(); reject(tx.error); };
       tx.onabort = () => { db.close(); reject(tx.error); };
     });
@@ -2755,8 +2863,41 @@ async function saveToHistory(bytes) {
   }
 }
 
+async function saveTruckHistoryItems() {
+  // Oficios y PDFs sin camiones no se guardan en el historial
+  if (!state.materialTrucks.length) return;
+
+  const createdAt = Date.now();
+  const dateLabel = formatDispatchDate(state.dispatchDate);
+  const items = [];
+  for (const truck of truckSummaries()) {
+    const pageIndexes = truckPageIndexes(truck.index);
+    if (!pageIndexes.length) continue;
+    const bytes = await buildStampedPdfBytes(pageIndexes);
+    items.push({
+      id: 'truck_' + createdAt + '_' + truck.index,
+      type: 'truck',
+      name: 'Camión: ' + truck.truck + ' · Fecha: ' + dateLabel,
+      truck: truck.truck,
+      loads: truckLoadFileValue(truck.truck),
+      pageCount: pageIndexes.length,
+      stampName: state.stampEnabled ? ((selectedStamp()?.name || 'Timbre') + (state.doubleStamp ? ' x2' : '')) : 'Sin timbre',
+      timeEnabled: state.timeEnabled,
+      materialCount: state.materialEnabled ? 1 : 0,
+      dispatchDate: state.dispatchDate || '',
+      sourceFileName: state.currentFileName || '',
+      createdAt: createdAt + truck.index,
+      bytes: copyBytes(bytes),
+    });
+  }
+  await saveHistoryItems(items);
+}
+
 async function openHistoryModal() {
   $('historyModal').style.display = 'flex';
+  animateHistoryModal();
+  historyDayTabs.innerHTML = '';
+  historySummary.style.display = 'none';
   historyList.innerHTML = '<div class="history-empty">Cargando historial…</div>';
   try {
     const items = await historyAll();
@@ -2764,18 +2905,103 @@ async function openHistoryModal() {
       historyList.innerHTML = '<div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>';
       return;
     }
-    historyList.innerHTML = items.slice(0, HISTORY_LIMIT).map(item => `
-      <div class="history-item">
-        <div class="history-info">
-          <strong>${escapeHtml(item.name)}</strong>
-          <span>${escapeHtml(item.stampName || 'Timbre')} · ${item.timeEnabled === false ? 'sin hora' : 'con hora'}${item.materialCount ? ' · material ' + item.materialCount : ''} · ${formatHistoryDate(item.createdAt)} · ${item.pageCount} pág${item.pageCount !== 1 ? 's' : ''}</span>
-        </div>
-        <button class="btn btn-secondary btn-sm" type="button" onclick="printHistoryPdf('${item.id}')">Imprimir</button>
-      </div>
-    `).join('');
+    const groups = historyGroupsByDay(items);
+    selectedHistoryDay = selectedHistoryDay && groups.some(group => group.key === selectedHistoryDay)
+      ? selectedHistoryDay
+      : groups[0].key;
+    renderHistoryDayTabs(groups);
+    renderHistoryForDay(groups, selectedHistoryDay);
   } catch (err) {
     historyList.innerHTML = '<div class="history-empty">No se pudo abrir el historial local.</div>';
   }
+}
+
+function animateHistoryModal() {
+  if (typeof gsap === 'undefined' || prefersReducedMotion()) return;
+  gsap.fromTo('.history-modal', { autoAlpha: 0, y: 10, scale: 0.985 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.22, ease: 'power2.out', clearProps: 'opacity,visibility,transform' });
+}
+
+function historyDayKey(item) {
+  return item.dispatchDate || 'sin-fecha';
+}
+
+function historyDayLabel(key) {
+  return key === 'sin-fecha' ? 'Sin fecha' : formatDispatchDate(key);
+}
+
+function historyGroupsByDay(items) {
+  const byDay = {};
+  items.forEach(item => {
+    const key = historyDayKey(item);
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(item);
+  });
+  return Object.entries(byDay)
+    .map(([key, groupItems]) => ({
+      key,
+      label: historyDayLabel(key),
+      items: groupItems.sort((a, b) => b.createdAt - a.createdAt),
+    }))
+    .sort((a, b) => {
+      if (a.key === 'sin-fecha') return 1;
+      if (b.key === 'sin-fecha') return -1;
+      return b.key.localeCompare(a.key);
+    });
+}
+
+function renderHistoryDayTabs(groups) {
+  historyDayTabs.innerHTML = groups.map(group => `
+    <button class="history-day-tab ${group.key === selectedHistoryDay ? 'active' : ''}" type="button" onclick="selectHistoryDay('${escapeHtml(group.key)}')">
+      <strong>${escapeHtml(group.label)}</strong>
+      <span>${group.items.length} PDF${group.items.length !== 1 ? 's' : ''}</span>
+    </button>
+  `).join('');
+  if (typeof gsap !== 'undefined' && !prefersReducedMotion()) {
+    gsap.fromTo('.history-day-tab', { autoAlpha: 0, y: 6 }, { autoAlpha: 1, y: 0, duration: 0.18, stagger: 0.03, ease: 'power2.out', clearProps: 'opacity,visibility,transform' });
+  }
+}
+
+async function selectHistoryDay(dayKey) {
+  selectedHistoryDay = dayKey;
+  const groups = historyGroupsByDay(await historyAll());
+  renderHistoryDayTabs(groups);
+  renderHistoryForDay(groups, selectedHistoryDay);
+}
+
+function renderHistoryForDay(groups, dayKey) {
+  const group = groups.find(item => item.key === dayKey) || groups[0];
+  if (!group) {
+    historySummary.style.display = 'none';
+    historyList.innerHTML = '<div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>';
+    return;
+  }
+  const truckCount = group.items.filter(item => item.type === 'truck').length;
+  historySummary.style.display = 'flex';
+  historySummary.innerHTML = `
+    <strong>${escapeHtml(group.label)}</strong>
+    <span>${truckCount || group.items.length} camión${(truckCount || group.items.length) !== 1 ? 'es' : ''} guardado${(truckCount || group.items.length) !== 1 ? 's' : ''}</span>
+  `;
+  historyList.innerHTML = group.items.map(item => `
+      <div class="history-item">
+        <div class="history-info">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span>${escapeHtml(historyItemMeta(item))}</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="viewHistoryPdf('${item.id}')">Ver</button>
+      </div>
+    `).join('');
+  if (typeof gsap !== 'undefined' && !prefersReducedMotion()) {
+    gsap.fromTo('.history-item', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.2, stagger: 0.035, ease: 'power2.out', clearProps: 'opacity,visibility,transform' });
+  }
+}
+
+function historyItemMeta(item) {
+  const parts = [];
+  if (item.type === 'truck' && item.loads) parts.push('Carga/s ' + item.loads);
+  if (item.dispatchDate) parts.push(formatDispatchDate(item.dispatchDate));
+  parts.push(item.timeEnabled === false ? 'sin hora' : 'con hora');
+  parts.push((item.pageCount || 0) + ' hoja' + (item.pageCount !== 1 ? 's' : ''));
+  return parts.join(' · ');
 }
 
 function renderDetectionSummary() {
@@ -2805,7 +3031,7 @@ function closeHistoryModal() {
   $('historyModal').style.display = 'none';
 }
 
-async function printHistoryPdf(id) {
+async function viewHistoryPdf(id) {
   try {
     const db = await openHistoryDb();
     const item = await new Promise((resolve, reject) => {
@@ -2817,10 +3043,9 @@ async function printHistoryPdf(id) {
     });
     if (!item) return toast('No se encontró ese PDF en el historial', 'error');
     const blob = new Blob([copyBytes(item.bytes)], { type: 'application/pdf' });
-    const w = window.open(URL.createObjectURL(blob), '_blank');
-    if (w) w.addEventListener('load', () => w.print());
+    window.open(URL.createObjectURL(blob), '_blank');
   } catch (err) {
-    toast('No se pudo imprimir desde el historial', 'error');
+    toast('No se pudo abrir ese PDF del historial', 'error');
   }
 }
 
