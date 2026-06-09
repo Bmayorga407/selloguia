@@ -2123,11 +2123,11 @@ async function loadPdf(file) {
       state.stampPosition = { x: 48, y: 100 };
       state.stamp2Position = { x: 212, y: 100 };
     } else {
-      // Carta y demás formatos: timbre simple, con hora, sin material
+      // Carta y demás formatos: timbre simple, con hora y material activo
       state.stampEnabled = true;
       state.doubleStamp = false;
       state.timeEnabled = true;
-      state.materialEnabled = false;
+      state.materialEnabled = true;
     }
     syncInputsFromState();
 
