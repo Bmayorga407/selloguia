@@ -1114,6 +1114,8 @@ body::before{
 .history-info strong{font-size:0.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-info span{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--text3)}
 .history-empty{color:var(--text3);font-size:0.85rem;line-height:1.5;padding:18px;text-align:center}
+.history-search{margin-bottom:10px}
+.history-search-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:0.85rem;color:var(--text)}
 
 /* Responsive */
 @media(max-width:860px){
@@ -1237,7 +1239,7 @@ body::before{
           <div class="truck-empty">Carga una guía para ver los camiones detectados.</div>
         </div>
         <div class="truck-panel-actions">
-          <button class="btn btn-secondary btn-sm btn-truck-print" id="btnPrintTruck" type="button" onclick="printSelectedTruck()" disabled>Imprimir camión</button>
+          <button class="btn btn-secondary btn-sm btn-truck-print" id="btnPrintTruck" type="button" onclick="printSelectedTruck()" disabled>Imprimir camión seleccionado</button>
         </div>
       </section>
 
@@ -1461,6 +1463,8 @@ let stampPreviewImage = null;
 let stampPreviewSource = '';
 let loadingTween = null;
 let selectedHistoryDay = '';
+let historySearchQuery = '';
+let currentHistoryGroups = [];
 
 // ─── Init ─────────────────────────────────────────────────
 if (typeof pdfjsLib !== 'undefined') {
@@ -2905,12 +2909,12 @@ async function openHistoryModal() {
       historyList.innerHTML = '<div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>';
       return;
     }
-    const groups = historyGroupsByDay(items);
-    selectedHistoryDay = selectedHistoryDay && groups.some(group => group.key === selectedHistoryDay)
+    currentHistoryGroups = historyGroupsByDay(items);
+    selectedHistoryDay = selectedHistoryDay && currentHistoryGroups.some(group => group.key === selectedHistoryDay)
       ? selectedHistoryDay
-      : groups[0].key;
-    renderHistoryDayTabs(groups);
-    renderHistoryForDay(groups, selectedHistoryDay);
+      : currentHistoryGroups[0].key;
+    renderHistoryDayTabs(currentHistoryGroups);
+    renderHistoryForDay(currentHistoryGroups, selectedHistoryDay);
   } catch (err) {
     historyList.innerHTML = '<div class="history-empty">No se pudo abrir el historial local.</div>';
   }
@@ -2929,6 +2933,11 @@ function historyDayLabel(key) {
   return key === 'sin-fecha' ? 'Sin fecha' : formatDispatchDate(key);
 }
 
+function truckNumber(truck) {
+  const match = String(truck || '').match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
 function historyGroupsByDay(items) {
   const byDay = {};
   items.forEach(item => {
@@ -2940,7 +2949,12 @@ function historyGroupsByDay(items) {
     .map(([key, groupItems]) => ({
       key,
       label: historyDayLabel(key),
-      items: groupItems.sort((a, b) => b.createdAt - a.createdAt),
+      items: groupItems.sort((a, b) => {
+        const numA = truckNumber(a.truck);
+        const numB = truckNumber(b.truck);
+        if (numA !== numB) return numA - numB;
+        return (a.createdAt || 0) - (b.createdAt || 0);
+      }),
     }))
     .sort((a, b) => {
       if (a.key === 'sin-fecha') return 1;
@@ -2963,9 +2977,9 @@ function renderHistoryDayTabs(groups) {
 
 async function selectHistoryDay(dayKey) {
   selectedHistoryDay = dayKey;
-  const groups = historyGroupsByDay(await historyAll());
-  renderHistoryDayTabs(groups);
-  renderHistoryForDay(groups, selectedHistoryDay);
+  currentHistoryGroups = historyGroupsByDay(await historyAll());
+  renderHistoryDayTabs(currentHistoryGroups);
+  renderHistoryForDay(currentHistoryGroups, selectedHistoryDay);
 }
 
 function renderHistoryForDay(groups, dayKey) {
@@ -2975,13 +2989,30 @@ function renderHistoryForDay(groups, dayKey) {
     historyList.innerHTML = '<div class="history-empty">Aún no hay PDFs sellados en este equipo.</div>';
     return;
   }
+  const query = historySearchQuery.trim().toLowerCase();
+  const filteredItems = query
+    ? group.items.filter(item =>
+        String(item.truck || '').toLowerCase().includes(query) ||
+        String(item.name || '').toLowerCase().includes(query)
+      )
+    : group.items;
   const truckCount = group.items.filter(item => item.type === 'truck').length;
+  const filteredCount = filteredItems.length;
   historySummary.style.display = 'flex';
   historySummary.innerHTML = `
     <strong>${escapeHtml(group.label)}</strong>
-    <span>${truckCount || group.items.length} camión${(truckCount || group.items.length) !== 1 ? 'es' : ''} guardado${(truckCount || group.items.length) !== 1 ? 's' : ''}</span>
+    <span>${truckCount || group.items.length} camión${(truckCount || group.items.length) !== 1 ? 'es' : ''} guardado${(truckCount || group.items.length) !== 1 ? 's' : ''}${query && filteredCount !== group.items.length ? ' · ' + filteredCount + ' coincidente' + (filteredCount !== 1 ? 's' : '') : ''}</span>
   `;
-  historyList.innerHTML = group.items.map(item => `
+  const searchHtml = `
+    <div class="history-search">
+      <input type="text" class="history-search-input" placeholder="Buscar por número de camión..." value="${escapeHtml(historySearchQuery)}" oninput="historySearchQuery = this.value; renderHistoryForDay(currentHistoryGroups, '${escapeHtml(dayKey)}');">
+    </div>
+  `;
+  if (!filteredItems.length) {
+    historyList.innerHTML = searchHtml + '<div class="history-empty">No se encontraron camiones con ese número.</div>';
+    return;
+  }
+  historyList.innerHTML = searchHtml + filteredItems.map(item => `
       <div class="history-item">
         <div class="history-info">
           <strong>${escapeHtml(item.name)}</strong>
