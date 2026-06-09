@@ -285,6 +285,7 @@ body::before{
 
 /* Main content */
 .main-content{
+  position:relative;
   display:flex;
   flex-direction:column;
   padding:10px 20px 8px;
@@ -347,6 +348,73 @@ body::before{
   background:var(--surface2);
   border-radius:20px;
   border:1px solid var(--border);
+}
+.loading-panel{
+  position:absolute;
+  inset:10px 20px 8px;
+  z-index:8;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--border-light);
+  border-radius:24px;
+  background:rgba(255,255,255,0.94);
+  box-shadow:0 18px 54px rgba(20,24,32,0.10);
+  pointer-events:none;
+}
+.loading-card{
+  width:min(320px,80%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  text-align:center;
+}
+.loading-mark{
+  width:56px;
+  height:56px;
+  border-radius:18px;
+  border:1px solid rgba(232,17,27,0.18);
+  background:linear-gradient(180deg,#fff,var(--surface2));
+  display:grid;
+  place-items:center;
+  color:var(--red);
+  font-size:1.55rem;
+  box-shadow:0 10px 24px rgba(20,24,32,0.08);
+  will-change:transform;
+}
+.loading-title{
+  font-size:1rem;
+  font-weight:750;
+  color:var(--text);
+}
+.loading-copy{
+  color:var(--text3);
+  font-size:0.82rem;
+  line-height:1.45;
+}
+.loading-bar{
+  width:100%;
+  height:3px;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--surface3);
+}
+.loading-bar span{
+  display:block;
+  width:42%;
+  height:100%;
+  border-radius:inherit;
+  background:var(--red);
+  animation:loadingSweep 1s ease-in-out infinite;
+  will-change:transform;
+}
+@keyframes loadingSweep{
+  from{transform:translateX(-110%)}
+  to{transform:translateX(250%)}
+}
+@media (prefers-reduced-motion:reduce){
+  .loading-bar span{animation:none;width:100%}
 }
 
 /* Workspace */
@@ -943,6 +1011,17 @@ body::before{
       <span class="upload-hint">PDF hasta 50 MB · Múltiples páginas</span>
     </button>
 
+    <div class="loading-panel" id="loadingPanel" aria-live="polite" aria-hidden="true">
+      <div class="loading-card">
+        <div class="loading-mark" id="loadingMark" aria-hidden="true">📄</div>
+        <div>
+          <div class="loading-title">Preparando guía...</div>
+          <div class="loading-copy">Leyendo el PDF y detectando sus páginas.</div>
+        </div>
+        <div class="loading-bar" aria-hidden="true"><span></span></div>
+      </div>
+    </div>
+
     <div class="workspace" id="workspace">
       <div class="workspace-toolbar">
         <div class="file-badge" id="fileBadge">
@@ -1055,6 +1134,7 @@ body::before{
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 // ─── State ────────────────────────────────────────────────
 const state = {
@@ -1158,6 +1238,8 @@ const stampSizeValue = $('stampSizeValue');
 const toastContainer = $('toastContainer');
 const historyList = $('historyList');
 const detectionList = $('detectionList');
+const loadingPanel = $('loadingPanel');
+const loadingMark = $('loadingMark');
 const pageCanvas = $('pageCanvas');
 const markerCanvas = $('markerCanvas');
 const canvasWrapper = $('canvasWrapper');
@@ -1169,6 +1251,7 @@ let draggingMarker = null;
 let dragOffset = { x: 0, y: 0 };
 let stampPreviewImage = null;
 let stampPreviewSource = '';
+let loadingTween = null;
 
 // ─── Init ─────────────────────────────────────────────────
 if (typeof pdfjsLib !== 'undefined') {
@@ -1214,6 +1297,48 @@ document.addEventListener('drop', e => {
   if (!dragHasFiles(e)) return;
   handlePdfDrop(e);
 });
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function showPdfLoading() {
+  loadingPanel.style.display = 'flex';
+  loadingPanel.setAttribute('aria-hidden', 'false');
+  uploadZone.classList.remove('drag-over');
+  if (typeof gsap === 'undefined' || prefersReducedMotion()) return;
+  loadingTween?.kill();
+  gsap.killTweensOf([loadingPanel, loadingMark]);
+  gsap.fromTo(loadingPanel, { autoAlpha: 0, scale: 0.985 }, { autoAlpha: 1, scale: 1, duration: 0.22, ease: 'power2.out' });
+  loadingTween = gsap.to(loadingMark, { y: -3, duration: 0.55, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+}
+
+function hidePdfLoading() {
+  loadingPanel.setAttribute('aria-hidden', 'true');
+  loadingTween?.kill();
+  loadingTween = null;
+  if (typeof gsap === 'undefined' || prefersReducedMotion()) {
+    loadingPanel.style.display = 'none';
+    return;
+  }
+  gsap.to(loadingPanel, {
+    autoAlpha: 0,
+    scale: 0.99,
+    duration: 0.18,
+    ease: 'power2.out',
+    onComplete: () => {
+      loadingPanel.style.display = 'none';
+      gsap.set(loadingPanel, { clearProps: 'opacity,visibility,scale' });
+      gsap.set(loadingMark, { clearProps: 'transform' });
+    },
+  });
+}
+
+function animateWorkspaceReady() {
+  if (typeof gsap === 'undefined' || prefersReducedMotion()) return;
+  gsap.fromTo(workspace, { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.28, ease: 'power2.out', clearProps: 'opacity,visibility,transform' });
+  gsap.fromTo('.workspace-toolbar,.editor-card,.action-bar', { autoAlpha: 0, y: 8 }, { autoAlpha: 1, y: 0, duration: 0.24, stagger: 0.04, ease: 'power2.out', clearProps: 'opacity,visibility,transform' });
+}
 
 // ─── Canvas interaction ───────────────────────────────────
 markerCanvas.addEventListener('mousedown', e => {
@@ -1959,6 +2084,7 @@ async function loadPdf(file) {
 
   state._loading = true;
   setStatus('processing', 'Cargando PDF…');
+  showPdfLoading();
   try {
     resetMarkerSettings();
     syncInputsFromState();
@@ -2008,6 +2134,7 @@ async function loadPdf(file) {
     // Show workspace first so canvas wrapper has width
     uploadZone.style.display = 'none';
     workspace.classList.add('active');
+    animateWorkspaceReady();
     pageCount.textContent = pages.length + ' pág' + (pages.length !== 1 ? 's' : '');
     pageCount.classList.add('visible');
     fileBadge.querySelector('.name').textContent = file.name;
@@ -2041,6 +2168,7 @@ async function loadPdf(file) {
     toast('Error al procesar el PDF: ' + err.message, 'error');
   } finally {
     state._loading = false;
+    hidePdfLoading();
   }
 }
 
@@ -2734,6 +2862,7 @@ function updateApplyButton() {
 
 // ─── Reset ────────────────────────────────────────────────
 function resetAll() {
+  hidePdfLoading();
   state.pdfBytes = null; state.modifiedPdfBytes = null; state.pdfDoc = null;
   state.pageCount = 0; state.pageWidth = 0; state.pageHeight = 0;
   state.currentFileName = '';
