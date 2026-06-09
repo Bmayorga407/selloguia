@@ -541,6 +541,8 @@ body::before{
   gap:8px;
   min-height:0;
   overflow:auto;
+  padding:4px;
+  margin:-4px;
 }
 .truck-panel-actions{
   border-top:1px solid var(--border);
@@ -1053,7 +1055,8 @@ body::before{
   display:flex;
   gap:8px;
   overflow:auto;
-  padding-bottom:8px;
+  padding:4px 4px 8px 4px;
+  margin:-4px -4px 0 -4px;
   margin-bottom:10px;
 }
 .history-day-tab{
@@ -1372,6 +1375,7 @@ const state = {
   timeFormat: 'HH:mm',
   readyToPrint: false,
   _loading: false,
+  isHistoryView: false,
 };
 
 const DEFAULT_MARKER_SETTINGS = {
@@ -1558,6 +1562,7 @@ function animateWorkspaceReady() {
 
 // ─── Canvas interaction ───────────────────────────────────
 markerCanvas.addEventListener('mousedown', e => {
+  if (state.isHistoryView) return;
   if (!pageCanvas.width) return;
   const rect = markerCanvas.getBoundingClientRect();
   const sx = (e.clientX - rect.left) / rect.width * pageCanvas.width;
@@ -1624,6 +1629,7 @@ document.addEventListener('mouseup', () => {
 });
 
 markerCanvas.addEventListener('touchstart', e => {
+  if (state.isHistoryView) return;
   if (!pageCanvas.width || !e.touches[0]) return;
   const rect = markerCanvas.getBoundingClientRect();
   const sx = (e.touches[0].clientX - rect.left) / rect.width * pageCanvas.width;
@@ -2101,6 +2107,7 @@ async function renderPageToCanvas() {
 function drawMarkers() {
   if (!pageCanvas.width) return;
   mctx.clearRect(0, 0, markerCanvas.width, markerCanvas.height);
+  if (state.isHistoryView) return;
 
   // Stamp
   const scx = stampCanvasX(), scy = stampCanvasY(), sw = stampCanvasW(), sh = stampCanvasH();
@@ -2435,6 +2442,7 @@ async function loadPdf(file) {
   setStatus('processing', 'Cargando PDF...');
   showPdfLoading();
   try {
+    state.isHistoryView = false;
     resetMarkerSettings();
     syncInputsFromState();
     const arrayBuffer = await file.arrayBuffer();
@@ -3097,6 +3105,70 @@ function closeHistoryModal() {
   $('historyModal').style.display = 'none';
 }
 
+async function loadHistoryPdf(item) {
+  if (state._loading) return;
+  state._loading = true;
+  setStatus('processing', 'Cargando historial...');
+  showPdfLoading();
+  try {
+    resetMarkerSettings();
+    state.isHistoryView = true;
+    state.stampEnabled = false;
+    state.timeEnabled = false;
+    state.materialEnabled = false;
+    syncInputsFromState();
+
+    state.pdfBytes = copyBytes(item.bytes);
+    state.currentFileName = item.sourceFileName || 'historial.pdf';
+    state.stampTimeFromFile = null;
+    updateTimeLabel();
+    updateClock();
+    state.pdfDoc = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
+    const pages = state.pdfDoc.getPages();
+    state.pageCount = pages.length;
+    state.materialPages = [0];
+    state.materialTrucks = [item.truck || ''];
+    state.plasticTotals = {};
+    state.dispatchDate = item.dispatchDate || '';
+    state.dispatchData = null;
+    state.selectedTruckIndex = 0;
+    state.currentPageIndex = 0;
+
+    if (pages.length > 0) {
+      const size = pages[0].getSize();
+      state.pageWidth = size.width || DEFAULT_PAGE_POINTS.width;
+      state.pageHeight = size.height || DEFAULT_PAGE_POINTS.height;
+      canvasWrapper.style.setProperty('--page-aspect', state.pageWidth / state.pageHeight);
+      clampMarkerPositions();
+    }
+
+    uploadZone.style.display = 'none';
+    workspace.classList.add('active');
+    animateWorkspaceReady();
+    pageCount.textContent = pages.length + ' pág' + (pages.length !== 1 ? 's' : '');
+    pageCount.classList.add('visible');
+    fileBadge.querySelector('.name').textContent = item.name;
+    fileBadge.querySelector('.pages').textContent = pages.length + ' página' + (pages.length !== 1 ? 's' : '');
+
+    await renderPageToCanvas();
+
+    state.modifiedPdfBytes = copyBytes(state.pdfBytes);
+    state.readyToPrint = true;
+    updateApplyButton();
+    renderDetectionSummary();
+    renderTruckPanel();
+
+    setStatus('ready', 'Historial cargado');
+  } catch (err) {
+    console.error(err);
+    setStatus('error', 'Error');
+    toast('Error al visualizar historial: ' + err.message, 'error');
+  } finally {
+    state._loading = false;
+    hidePdfLoading();
+  }
+}
+
 async function viewHistoryPdf(id) {
   try {
     const db = await openHistoryDb();
@@ -3108,8 +3180,8 @@ async function viewHistoryPdf(id) {
       tx.oncomplete = () => db.close();
     });
     if (!item) return toast('No se encontró ese PDF en el historial', 'error');
-    const blob = new Blob([copyBytes(item.bytes)], { type: 'application/pdf' });
-    window.open(URL.createObjectURL(blob), '_blank');
+    closeHistoryModal();
+    await loadHistoryPdf(item);
   } catch (err) {
     toast('No se pudo abrir ese PDF del historial', 'error');
   }
@@ -3396,7 +3468,7 @@ function updateApplyButton() {
   const hasMaterialTargets = state.materialEnabled && state.materialPages.length > 0;
   const hasPlasticTargets = hasPlasticTotals();
   const hasAnyMarker = state.stampEnabled || state.timeEnabled || hasMaterialTargets || hasPlasticTargets;
-  const canApply = hasPdf && hasAnyMarker && (!state.stampEnabled || hasStamp);
+  const canApply = hasPdf && (state.isHistoryView || (hasAnyMarker && (!state.stampEnabled || hasStamp)));
   document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && canApply));
   btnApply.disabled = !canApply;
   if (!hasPdf) {
@@ -3404,6 +3476,13 @@ function updateApplyButton() {
     actionIcon.textContent = '📄';
     actionTitle.textContent = 'Carga una guía';
     actionHint.textContent = 'Selecciona un PDF para comenzar.';
+    return;
+  }
+  if (state.isHistoryView) {
+    btnApply.textContent = '🖨 Imprimir copia';
+    actionIcon.textContent = '✓';
+    actionTitle.textContent = 'Copia del historial';
+    actionHint.textContent = 'Este archivo ya fue procesado y guardado.';
     return;
   }
   if (!hasAnyMarker) {
@@ -3462,6 +3541,7 @@ function resetAll() {
   state.selectedTruckIndex = 0;
   state.currentPageIndex = 0;
   state.readyToPrint = false;
+  state.isHistoryView = false;
   canvasWrapper.style.setProperty('--page-aspect', DEFAULT_PAGE_POINTS.width / DEFAULT_PAGE_POINTS.height);
   uploadZone.style.display = '';
   workspace.classList.remove('active');
