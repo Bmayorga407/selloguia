@@ -798,55 +798,41 @@ body::before{
   box-shadow:0 24px 70px rgba(20,24,32,0.22);
 }
 @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.modal h3{font-size:1rem;font-weight:700;margin-bottom:16px}
-.modal .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.modal label{font-size:0.75rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0}
+.modal h3{font-size:1.05rem;font-weight:750;margin-bottom:18px}
+.modal .form-group{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.modal label{font-size:0.78rem;font-weight:650;color:var(--text2);letter-spacing:0}
 .modal input[type="text"],.modal input[type="file"]{
   background:var(--surface2);
   border:1px solid var(--border);
   border-radius:6px;
-  padding:10px 12px;
+  padding:12px 13px;
   color:var(--text);
   font-family:inherit;
-  font-size:0.85rem;
-}
-.modal-help{
-  color:var(--text3);
-  font-size:0.8rem;
-  line-height:1.45;
-  margin:-6px 0 16px;
-}
-.template-preview{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:12px;
-  border:1px solid var(--border);
-  border-radius:14px;
-  background:var(--surface2);
-  margin-bottom:14px;
-}
-.template-stamp{
-  width:96px;
-  height:42px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border:3px solid var(--red);
-  border-radius:4px;
-  color:var(--red);
-  font-size:0.62rem;
-  font-weight:800;
-  text-align:center;
-  line-height:1.05;
-  background:#fff;
-}
-.template-preview p{
-  color:var(--text3);
-  font-size:0.78rem;
-  line-height:1.45;
+  font-size:0.95rem;
 }
 .modal input[type="text"]:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-color:var(--red)}
+.optional-upload{
+  border-top:1px solid var(--border-light);
+  margin-top:6px;
+  padding-top:12px;
+}
+.optional-upload summary{
+  color:var(--text3);
+  cursor:pointer;
+  font-size:0.82rem;
+  font-weight:650;
+  list-style:none;
+}
+.optional-upload summary::-webkit-details-marker{display:none}
+.optional-upload summary::before{
+  content:'+';
+  display:inline-block;
+  width:16px;
+  color:var(--red);
+  font-weight:800;
+}
+.optional-upload[open] summary{margin-bottom:10px;color:var(--text2)}
+.optional-upload[open] summary::before{content:'-'}
 .modal input[type="file"]{padding:8px;cursor:pointer}
 .modal input[type="file"]::file-selector-button{
   background:var(--surface3);
@@ -1036,20 +1022,18 @@ body::before{
 
 <div class="modal-overlay" id="stampModal" style="display:none" onclick="if(event.target===this)closeAddStampModal()" role="dialog" aria-modal="true" aria-labelledby="stampModalTitle">
   <div class="modal">
-    <h3 id="stampModalTitle">Crear Timbre</h3>
-    <p class="modal-help">Escribe el nombre y la app genera un timbre listo para usar. La imagen propia es opcional.</p>
-    <div class="template-preview" aria-hidden="true">
-      <div class="template-stamp">ENTREGADO<br>NOMBRE</div>
-      <p>Plantilla base con el nombre centrado dentro del sello.</p>
-    </div>
+    <h3 id="stampModalTitle">Nuevo timbre</h3>
     <div class="form-group">
-      <label for="stampNameInput">Nombre de la persona</label>
+      <label for="stampNameInput">Nombre que irá en el sello</label>
       <input type="text" id="stampNameInput" name="stampName" placeholder="Ej: Juan Pérez…" autocomplete="off">
     </div>
-    <div class="form-group">
-      <label for="stampFileInput">Imagen propia opcional (PNG, JPG)</label>
-      <input type="file" id="stampFileInput" name="stampImage" accept="image/png,image/jpeg,image/webp">
-    </div>
+    <details class="optional-upload">
+      <summary>Usar imagen propia</summary>
+      <div class="form-group">
+        <label for="stampFileInput">Imagen PNG, JPG o WEBP</label>
+        <input type="file" id="stampFileInput" name="stampImage" accept="image/png,image/jpeg,image/webp">
+      </div>
+    </details>
     <div class="modal-actions">
       <button class="btn btn-ghost btn-sm" onclick="closeAddStampModal()">Cancelar</button>
       <button class="btn btn-primary btn-sm" onclick="saveNewStamp()">Crear Timbre</button>
