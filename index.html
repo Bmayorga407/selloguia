@@ -1807,10 +1807,14 @@ function truckPageIndexes(index) {
 function truckSummaries() {
   return state.materialTrucks.map((truck, index) => {
     const range = truckPageRange(index);
+    const info = dispatchInfoForTruck(truck);
+    const loadsCount = info?.loads?.length || 0;
+    const loadLabel = loadsCount > 1 ? 'Cargas' : 'Carga';
     return {
       index,
       truck,
       loads: truckLoadValue(truck),
+      loadLabel,
       time: state.stampTimeFromFile ? formatTime(state.stampTimeFromFile, state.timeFormat) : 'Sin hora',
       pages: range.label,
       pageBadge: range.shortLabel,
@@ -1853,7 +1857,7 @@ function renderTruckPanel() {
         <span class="truck-pages">${escapeHtml(item.pageBadge)}</span>
       </div>
       <div class="truck-meta">
-        <div class="truck-meta-row"><span>Carga/s</span><strong>${escapeHtml(item.loads)}</strong></div>
+        <div class="truck-meta-row"><span>${escapeHtml(item.loadLabel)}</span><strong>${escapeHtml(item.loads)}</strong></div>
         <div class="truck-meta-row"><span>Hora del archivo</span><strong>${escapeHtml(item.time)}</strong></div>
         <div class="truck-meta-row"><span>Hojas</span><strong>${escapeHtml(item.pages)}</strong></div>
       </div>
@@ -3072,7 +3076,11 @@ function renderHistoryForDay(groups, dayKey) {
 
 function historyItemMeta(item) {
   const parts = [];
-  if (item.type === 'truck' && item.loads) parts.push('Carga/s ' + item.loads);
+  if (item.type === 'truck' && item.loads) {
+    const loadsCount = (item.loads || '').split(' / ').filter(Boolean).length;
+    const label = loadsCount > 1 ? 'Cargas' : 'Carga';
+    parts.push(label + ' ' + item.loads);
+  }
   if (item.dispatchDate) parts.push(formatDispatchDate(item.dispatchDate));
   
   let timeStr = 'sin hora';
