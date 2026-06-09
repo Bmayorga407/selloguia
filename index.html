@@ -868,7 +868,7 @@ body::before{
   width:100%;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:8px;
   border-top:1px solid var(--border);
   padding-top:10px;
   margin-top:2px;
@@ -883,42 +883,77 @@ body::before{
 .detection-list{
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:5px;
 }
-.detection-row{
+.detection-card{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
+  align-items:flex-start;
+  gap:10px;
   width:100%;
-  padding:8px 10px;
+  padding:9px 10px;
   border:1px solid var(--border);
   border-radius:11px;
   background:var(--surface2);
   color:var(--text);
+  transition:background-color var(--transition),border-color var(--transition);
 }
-.detection-row span:first-child{
+.detection-card:hover{
+  background:#fff;
+  border-color:var(--border-light);
+}
+.detection-card-icon{
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0.85rem;
+  flex-shrink:0;
+  background:#fff;
+  border:1px solid var(--border);
+}
+.detection-card-icon.green{background:#e8f7ef;border-color:#b7e7cc;color:var(--green)}
+.detection-card-icon.amber{background:#fef8e8;border-color:#f0dfa0;color:var(--amber)}
+.detection-card-icon.red{background:#fdebed;border-color:#f5c2c5;color:var(--red)}
+.detection-card-body{
+  flex:1;
   min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+.detection-card-label{
+  font-size:0.68rem;
+  font-weight:600;
   color:var(--text3);
-  font-size:0.75rem;
+  text-transform:uppercase;
+  letter-spacing:0.02em;
+}
+.detection-card-value{
+  font-family:'DM Mono',monospace;
+  font-size:0.78rem;
+  font-weight:600;
+  color:var(--text);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.detection-row strong{
-  font-family:'DM Mono',monospace;
-  font-size:0.78rem;
-  color:var(--text);
-  white-space:nowrap;
+.detection-card-hint{
+  font-size:0.68rem;
+  color:var(--text3);
+  line-height:1.35;
+  margin-top:1px;
 }
 .detection-empty{
-  padding:12px;
+  padding:14px 12px;
   border:1px dashed var(--border);
   border-radius:12px;
   color:var(--text3);
   font-size:0.78rem;
   line-height:1.45;
   background:var(--surface2);
+  text-align:center;
 }
 
 /* Settings */
@@ -3103,19 +3138,69 @@ function renderDetectionSummary() {
     detectionList.innerHTML = '<div class="detection-empty">Carga una guía para ver el análisis automático.</div>';
     return;
   }
+
   const truckCount = state.materialTrucks.length;
-  const superlitroCount = Object.values(state.plasticTotals || {})
-    .filter(item => Number(item?.total) > 0 || Number(item?.bottleTotal) > 0).length;
-  const rows = [
-    ['Páginas', state.pageCount],
-    ['Camiones', truckCount || 'No detectado'],
-    ['Superlitro', superlitroCount ? superlitroCount + (superlitroCount === 1 ? ' camión' : ' camiones') : 'Sin datos'],
-    ['Preventa', state.dispatchData?.matchedCount ? state.dispatchData.matchedCount + ' encontrados' : 'No conectada'],
+  const truckCodes = state.materialTrucks.join(', ');
+  const plasticEntries = Object.values(state.plasticTotals || {});
+  const totalPlastics = plasticEntries.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+  const totalBottles = plasticEntries.reduce((sum, item) => sum + (Number(item?.bottleTotal) || 0), 0);
+  const isLandscape = state.pageWidth > state.pageHeight && state.pageWidth > 850;
+  const paperFormat = isLandscape ? 'Oficio (Horizontal)' : 'Carta (Vertical)';
+  const paperHint = isLandscape ? 'Timbre doble · sin hora' : 'Timbre simple · hora y material';
+  const dateLabel = state.dispatchDate ? formatDispatchDate(state.dispatchDate) : 'No detectada';
+
+  const preventa = state.dispatchData;
+  let preventaValue = 'Sin conexión';
+  let preventaHint = 'Datos manuales activos';
+  let preventaColor = '';
+  if (preventa?.matchedCount) {
+    const suc = preventa.sucursal || '';
+    preventaValue = suc + ' · ' + preventa.matchedCount + ' camión' + (preventa.matchedCount !== 1 ? 'es' : '') + ' ok';
+    preventaHint = 'Cargas cargadas desde Neon';
+    preventaColor = 'green';
+  } else if (preventa) {
+    preventaValue = (preventa.sucursal || 'Conectada') + ' · 0 coincidencias';
+    preventaHint = 'Conectada pero sin datos para esta fecha';
+    preventaColor = 'amber';
+  }
+
+  let truckValue = 'No detectados';
+  let truckHint = '';
+  let truckColor = '';
+  if (truckCount) {
+    truckValue = truckCount + ' camión' + (truckCount !== 1 ? 'es' : '');
+    truckHint = truckCodes;
+    truckColor = 'green';
+  }
+
+  let envaseValue = 'Sin datos';
+  let envaseHint = '';
+  let envaseColor = '';
+  if (totalPlastics > 0 || totalBottles > 0) {
+    const parts = [];
+    if (totalBottles > 0) parts.push(totalBottles + ' botella' + (totalBottles !== 1 ? 's' : ''));
+    if (totalPlastics > 0) parts.push(totalPlastics + ' plástico' + (totalPlastics !== 1 ? 's' : ''));
+    envaseValue = parts.join(' / ');
+    envaseHint = plasticEntries.filter(item => Number(item?.total) > 0 || Number(item?.bottleTotal) > 0).length + ' camión' + (plasticEntries.length !== 1 ? 'es' : '') + ' con envases';
+    envaseColor = 'green';
+  }
+
+  const cards = [
+    { icon: '📅', label: 'Fecha de guía', value: dateLabel, hint: state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '') + ' en el archivo', color: state.dispatchDate ? 'green' : '' },
+    { icon: '🚛', label: 'Camiones', value: truckValue, hint: truckHint, color: truckColor },
+    { icon: '📦', label: 'Envases Superlitro', value: envaseValue, hint: envaseHint, color: envaseColor },
+    { icon: '🔗', label: 'Preventa Neon', value: preventaValue, hint: preventaHint, color: preventaColor },
+    { icon: '📄', label: 'Formato papel', value: paperFormat, hint: paperHint, color: '' },
   ];
-  detectionList.innerHTML = rows.map(([label, value]) => `
-    <div class="detection-row">
-      <span>${label}</span>
-      <strong>${value}</strong>
+
+  detectionList.innerHTML = cards.map(card => `
+    <div class="detection-card">
+      <div class="detection-card-icon ${card.color}">${card.icon}</div>
+      <div class="detection-card-body">
+        <span class="detection-card-label">${card.label}</span>
+        <span class="detection-card-value" title="${escapeHtml(card.value)}">${escapeHtml(card.value)}</span>
+        ${card.hint ? '<span class="detection-card-hint">' + escapeHtml(card.hint) + '</span>' : ''}
+      </div>
     </div>
   `).join('');
 }
