@@ -1231,7 +1231,7 @@ body::before{
       <section class="workspace-side-panel" aria-labelledby="truckPanelTitle">
         <div class="truck-panel-header">
           <h3 id="truckPanelTitle">Camiones del archivo</h3>
-          <span>Historial 2.0</span>
+          <span>Historial</span>
         </div>
         <div class="truck-list" id="truckList">
           <div class="truck-empty">Carga una guía para ver los camiones detectados.</div>
@@ -1258,10 +1258,10 @@ body::before{
           <span class="status-icon" id="actionIcon" aria-hidden="true">📄</span>
           <div class="action-copy">
             <strong id="actionTitle">PDF cargado</strong>
-            <span id="actionHint">Revisa la posición y aplica el sello.</span>
+            <span id="actionHint">Revisa la posición y aplica el timbre.</span>
           </div>
         </div>
-        <button class="btn btn-primary btn-main" id="btnApply" onclick="handlePrimaryAction()" disabled>✦ Aplicar sello</button>
+        <button class="btn btn-primary btn-main" id="btnApply" onclick="handlePrimaryAction()" disabled>✦ Aplicar timbre</button>
         <div class="rotation-control">
           <label class="rotation-label" for="stampRotationInput">
             Inclinación del timbre
@@ -1301,8 +1301,8 @@ body::before{
   <div class="modal">
     <h3 id="stampModalTitle">Nuevo timbre</h3>
     <div class="form-group">
-      <label for="stampNameInput">Nombre que irá en el sello</label>
-      <input type="text" id="stampNameInput" name="stampName" placeholder="Ej: Juan Pérez…" autocomplete="off">
+      <label for="stampNameInput">Nombre que irá en el timbre</label>
+      <input type="text" id="stampNameInput" name="stampName" placeholder="Ej: Juan Pérez..." autocomplete="off">
     </div>
     <details class="optional-upload">
       <summary>Usar imagen propia</summary>
@@ -1842,7 +1842,7 @@ function renderTruckPanel() {
       </div>
       <div class="truck-meta">
         <div class="truck-meta-row"><span>Carga/s</span><strong>${escapeHtml(item.loads)}</strong></div>
-        <div class="truck-meta-row"><span>Hora archivo</span><strong>${escapeHtml(item.time)}</strong></div>
+        <div class="truck-meta-row"><span>Hora del archivo</span><strong>${escapeHtml(item.time)}</strong></div>
         <div class="truck-meta-row"><span>Hojas</span><strong>${escapeHtml(item.pages)}</strong></div>
       </div>
     </button>
@@ -1866,7 +1866,7 @@ async function printSelectedTruck() {
     btnPrintTruck.disabled = true;
     btnPrintTruck.textContent = 'Preparando...';
   }
-  setStatus('processing', 'Preparando camión ' + truck + '…');
+  setStatus('processing', 'Preparando camión ' + truck + '...');
   try {
     const bytes = await buildStampedPdfBytes(pageIndexes);
     printPdf(bytes, 'PDF del camión ' + truck + ' listo para imprimir');
@@ -1989,7 +1989,7 @@ function setMarkerFromCanvas(cx, cy, which) {
 function syncInputsFromState() {
   if (stampToggle) {
     stampToggle.setAttribute('aria-pressed', String(state.stampEnabled));
-    stampToggle.textContent = state.stampEnabled ? 'Timbre Sí' : 'Timbre No';
+    stampToggle.textContent = state.stampEnabled ? 'Timbre: Sí' : 'Timbre: No';
   }
   if (doubleStampToggle) {
     doubleStampToggle.disabled = !state.stampEnabled;
@@ -2002,7 +2002,7 @@ function syncInputsFromState() {
   }
   if (materialToggle) {
     materialToggle.setAttribute('aria-pressed', String(state.materialEnabled));
-    materialToggle.textContent = state.materialEnabled ? 'Material Sí' : 'Material No';
+    materialToggle.textContent = state.materialEnabled ? 'Material: Sí' : 'Material: No';
   }
   if (stampRotationInput) stampRotationInput.value = state.stampRotation || 0;
   if (stampRotationValue) stampRotationValue.textContent = (state.stampRotation || 0) + '°';
@@ -2426,7 +2426,7 @@ async function loadPdf(file) {
   if (file.size > 50 * 1024 * 1024) { toast('El archivo excede 50 MB', 'error'); return; }
 
   state._loading = true;
-  setStatus('processing', 'Cargando PDF…');
+  setStatus('processing', 'Cargando PDF...');
   showPdfLoading();
   try {
     resetMarkerSettings();
@@ -2506,7 +2506,7 @@ async function loadPdf(file) {
       toast('Cargas preventa: ' + state.dispatchData.matchedCount + ' camiones encontrados', 'success');
     }
     if (state.stampEnabled && !state.selectedStampId) {
-      toast('Agrega o selecciona un timbre para poder aplicar sellos', 'info');
+      toast('Agrega o selecciona un timbre para poder aplicar timbres', 'info');
     }
   } catch (err) {
     console.error(err);
@@ -2643,20 +2643,23 @@ async function buildStampedPdfBytes(pageIndexes) {
 async function applyStamps() {
   if (!canBuildStampedPdf()) return;
 
-  setStatus('processing', 'Aplicando sellos…');
+  setStatus('processing', 'Aplicando timbres...');
   btnApply.disabled = true;
-  btnApply.textContent = '⏳ Procesando…';
+  btnApply.textContent = '⏳ Procesando...';
 
   try {
     state.modifiedPdfBytes = await buildStampedPdfBytes();
     state.readyToPrint = true;
-    await saveTruckHistoryItems();
+    const removedCount = await saveTruckHistoryItems();
+    if (removedCount > 0) {
+      toast(removedCount + ' archivo' + (removedCount !== 1 ? 's' : '') + ' antiguo' + (removedCount !== 1 ? 's' : '') + ' eliminado' + (removedCount !== 1 ? 's' : '') + ' automáticamente', 'info');
+    }
     renderDetectionSummary();
     updateApplyButton();
-    setStatus('ready', 'Sellos aplicados — listo para imprimir');
+    setStatus('ready', 'Timbres aplicados — listo para imprimir');
   } catch (err) {
     console.error(err);
-    toast('Error al aplicar sellos: ' + err.message, 'error');
+    toast('Error al aplicar timbres: ' + err.message, 'error');
     setStatus('error', 'Error');
   } finally {
     updateApplyButton();
@@ -2746,8 +2749,8 @@ function drawPlasticTotalOnPdfPage(page, font, pageHeight, info) {
   const fallbackY = pageHeight - (PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM * PT_PER_MM);
   const y = Number.isFinite(info.y) ? Math.max(120, info.y - 14) : fallbackY;
   const rows = [];
-  if (Number(info.total) > 0) rows.push({ label: 'Total plasticos Superlitro Coca Cola:', value: String(info.total) });
-  if (Number(info.bottleTotal) > 0) rows.push({ label: 'Total botellas Superlitro Coca Cola:', value: String(info.bottleTotal) });
+  if (Number(info.total) > 0) rows.push({ label: 'Total plasticos Superlitro Coca-Cola:', value: String(info.total) });
+  if (Number(info.bottleTotal) > 0) rows.push({ label: 'Total botellas Superlitro Coca-Cola:', value: String(info.bottleTotal) });
   rows.forEach((row, index) => {
     const rowY = y - (index * PACKAGE_TOTAL_ROW_GAP_PT);
     page.drawText(row.label, {
@@ -2805,7 +2808,7 @@ async function historyAll() {
 
 async function saveHistoryItems(newItems) {
   try {
-    if (!newItems.length) return;
+    if (!newItems.length) return 0;
     const db = await openHistoryDb();
     const items = await historyAll();
     const tx = db.transaction(HISTORY_STORE, 'readwrite');
@@ -2848,18 +2851,14 @@ async function saveHistoryItems(newItems) {
       .forEach(oldItem => store.delete(oldItem.id));
 
     await new Promise((resolve, reject) => {
-      tx.oncomplete = () => {
-        db.close();
-        if (removedCount > 0) {
-          toast(removedCount + ' archivo' + (removedCount !== 1 ? 's' : '') + ' antiguo' + (removedCount !== 1 ? 's' : '') + ' eliminado' + (removedCount !== 1 ? 's' : '') + ' automáticamente', 'info');
-        }
-        resolve();
-      };
+      tx.oncomplete = () => { db.close(); resolve(); };
       tx.onerror = () => { db.close(); reject(tx.error); };
       tx.onabort = () => { db.close(); reject(tx.error); };
     });
+    return removedCount;
   } catch (err) {
     console.warn('History save failed:', err);
+    return 0;
   }
 }
 
@@ -2890,7 +2889,8 @@ async function saveTruckHistoryItems() {
       bytes: copyBytes(bytes),
     });
   }
-  await saveHistoryItems(items);
+  const removedCount = await saveHistoryItems(items);
+  return removedCount;
 }
 
 async function openHistoryModal() {
@@ -2898,7 +2898,7 @@ async function openHistoryModal() {
   animateHistoryModal();
   historyDayTabs.innerHTML = '';
   historySummary.style.display = 'none';
-  historyList.innerHTML = '<div class="history-empty">Cargando historial…</div>';
+  historyList.innerHTML = '<div class="history-empty">Cargando historial...</div>';
   try {
     const items = await historyAll();
     if (!items.length) {
@@ -3334,7 +3334,7 @@ function updateApplyButton() {
   document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && canApply));
   btnApply.disabled = !canApply;
   if (!hasPdf) {
-    btnApply.textContent = '✦ Aplicar sello';
+    btnApply.textContent = '✦ Aplicar timbre';
     actionIcon.textContent = '📄';
     actionTitle.textContent = 'Carga una guía';
     actionHint.textContent = 'Selecciona un PDF para comenzar.';
@@ -3362,7 +3362,7 @@ function updateApplyButton() {
     return;
   }
   const parts = [];
-  if (state.stampEnabled) parts.push(state.doubleStamp ? '2 sellos' : 'sello');
+  if (state.stampEnabled) parts.push(state.doubleStamp ? '2 timbres' : 'timbre');
   if (state.timeEnabled) parts.push('hora');
   if (hasMaterialTargets) parts.push('material');
   if (hasPlasticTargets) parts.push('plásticos');
@@ -3445,7 +3445,7 @@ function escapeHtml(str) {
 function shortFileName(name) {
   const clean = name || 'guia_sellada.pdf';
   if (clean.length <= 22) return clean;
-  return clean.slice(0, 18) + '…' + clean.split('.').pop();
+  return clean.slice(0, 18) + '...' + clean.split('.').pop();
 }
 
 // Keyboard shortcuts
