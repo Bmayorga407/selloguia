@@ -1199,14 +1199,36 @@ syncInputsFromState();
 renderDetectionSummary();
 
 // ─── Drag & drop ──────────────────────────────────────────
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-uploadZone.addEventListener('drop', e => {
+function dragHasFiles(e) {
+  return Array.from(e.dataTransfer?.types || []).includes('Files');
+}
+
+function isPdfFile(file) {
+  return Boolean(file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '')));
+}
+
+function handlePdfDrop(e) {
   e.preventDefault();
   uploadZone.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type === 'application/pdf') loadPdf(file);
+  const file = Array.from(e.dataTransfer?.files || []).find(isPdfFile);
+  if (file) loadPdf(file);
   else toast('Solo se aceptan archivos PDF', 'error');
+}
+
+document.addEventListener('dragover', e => {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();
+  uploadZone.classList.add('drag-over');
+});
+
+document.addEventListener('dragleave', e => {
+  if (e.relatedTarget) return;
+  uploadZone.classList.remove('drag-over');
+});
+
+document.addEventListener('drop', e => {
+  if (!dragHasFiles(e)) return;
+  handlePdfDrop(e);
 });
 
 // ─── Canvas interaction ───────────────────────────────────
@@ -1769,6 +1791,7 @@ function openPdfPicker(event) {
 async function handleFileSelect(e) {
   const file = e.target.files[0];
   if (file) loadPdf(file);
+  e.target.value = '';
 }
 
 async function analyzeMaterialPages(bytes) {
