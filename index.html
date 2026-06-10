@@ -1800,9 +1800,21 @@ function materialRowsForTruck(truck) {
 function loadLabelForTruck(truck) {
   const info = dispatchInfoForTruck(truck);
   if (!info?.loads?.length) return '';
-  const cargas = info.loads.map(load => load.carga).join(' / ');
+  const sorted = [...info.loads].sort((a, b) => {
+    const na = parseFloat(String(a.carga).replace(/[^\d.]/g, '')) || 0;
+    const nb = parseFloat(String(b.carga).replace(/[^\d.]/g, '')) || 0;
+    return na - nb;
+  });
+  const MAX_VISIBLE = 5;
+  const visible = sorted.slice(0, MAX_VISIBLE);
+  const remaining = sorted.length - visible.length;
+  const cargas = visible.map(load => load.carga).join(' / ');
   const label = info.loads.length === 1 ? 'Carga' : 'Cargas';
-  return label + ': ' + cargas;
+  let result = label + ': ' + cargas;
+  if (remaining > 0) {
+    result += ' / +' + remaining + (remaining === 1 ? ' carga' : ' cargas');
+  }
+  return result;
 }
 
 function truckLoadValue(truck) {
