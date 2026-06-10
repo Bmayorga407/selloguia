@@ -2812,7 +2812,7 @@ function drawPlasticTotalOnPdfPage(page, font, pageHeight, info) {
   const fontSize = PLASTIC_TOTAL_FONT_SIZE_PT;
   const x = PLASTIC_TOTAL_X_PT;
   const fallbackY = pageHeight - (PLASTIC_TOTAL_FALLBACK_Y_FROM_TOP_MM * PT_PER_MM);
-  const y = Number.isFinite(info.y) ? Math.max(120, info.y - 14) : fallbackY;
+  const y = Number.isFinite(info.y) ? Math.max(120, info.y - 44) : fallbackY;
   const rows = [];
   if (Number(info.total) > 0) rows.push({ label: 'Total plasticos Superlitro Coca-Cola:', value: String(info.total) });
   if (Number(info.bottleTotal) > 0) rows.push({ label: 'Total botellas Superlitro Coca-Cola:', value: String(info.bottleTotal) });
