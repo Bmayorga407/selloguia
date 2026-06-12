@@ -1313,9 +1313,9 @@ body::before{
         <div class="size-control">
           <label class="size-label" for="stampSizeInput">
             Tamaño del timbre
-            <output id="stampSizeValue" for="stampSizeInput">30 mm</output>
+            <output id="stampSizeValue" for="stampSizeInput">40 mm</output>
           </label>
-          <input id="stampSizeInput" type="range" min="8" max="70" step="1" value="30" oninput="updateStampSize(this.value)">
+          <input id="stampSizeInput" type="range" min="8" max="70" step="1" value="40" oninput="updateStampSize(this.value)">
           <div class="size-hint">Cambia el ancho; el alto se ajusta solo.</div>
         </div>
         <div class="detection-panel">
@@ -1404,7 +1404,7 @@ const state = {
   materialPosition: { x: 64, y: 198 },
   materialPages: [],
   materialTrucks: [],
-  stampSize: { w: 30, h: 30 },
+  stampSize: { w: 40, h: 40 },
   stampRotation: 0,
   timePosition: { x: 74, y: 239.5 },
   timeFormat: 'HH:mm',
@@ -1417,7 +1417,7 @@ const DEFAULT_MARKER_SETTINGS = {
   stampPosition: { x: 5, y: 234 },
   stamp2Position: { x: 120, y: 232 },
   materialPosition: { x: 64, y: 198 },
-  stampSize: { w: 30, h: 30 },
+  stampSize: { w: 40, h: 40 },
   stampRotation: 0,
   timePosition: { x: 74, y: 239.5 },
   timeFormat: 'HH:mm',
