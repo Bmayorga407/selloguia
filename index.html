@@ -1192,7 +1192,7 @@ body::before{
   .workspace.active{grid-template-columns:1fr}
   .workspace-side-panel,.editor-section,.action-bar{grid-column:1;grid-row:auto}
   .workspace-side-panel{
-    max-height:210px;
+    max-height:250px;
     border-radius:18px;
   }
   .truck-list{
@@ -1201,8 +1201,10 @@ body::before{
     grid-auto-columns:minmax(210px,260px);
     overflow-x:auto;
     overflow-y:hidden;
+    padding:4px 4px 10px;
+    margin:-4px -4px 0;
   }
-  .truck-panel-actions{border-top:0;padding-top:0}
+  .truck-panel-actions{border-top:1px solid var(--border);padding-top:10px}
   .canvas-wrapper{width:min(100%,560px)}
   .action-bar{
     position:static;
