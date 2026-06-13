@@ -1455,6 +1455,7 @@ const state = {
   selectedTruckIndex: 0,
   currentPageIndex: 0,
   plasticTotals: {},
+  palletTotals: {},
   stampPosition: { x: 5, y: 234 },
   stamp2Position: { x: 120, y: 232 },
   materialPosition: { x: 64, y: 198 },
@@ -1839,10 +1840,18 @@ function dispatchInfoForTruck(truck) {
   return truck && state.dispatchData?.byTruck ? state.dispatchData.byTruck[truck] || null : null;
 }
 
+function palletInfoForTruck(truck) {
+  return truck && state.palletTotals ? state.palletTotals[truck] || null : null;
+}
+
 function materialRowsForTruck(truck) {
   const rows = MATERIAL_ROWS.map(row => ({ ...row }));
   const info = dispatchInfoForTruck(truck);
-  const pallets = Number(info?.palletDifference);
+  const pdfPallets = Number(palletInfoForTruck(truck)?.total);
+  const capacity = Number(info?.palletCapacity);
+  const pallets = Number.isFinite(pdfPallets) && Number.isFinite(capacity)
+    ? Math.max(0, pdfPallets - capacity)
+    : 0;
   if (Number.isFinite(pallets) && pallets > 0) {
     const palletRow = rows.find(row => row.code === '8531');
     if (palletRow) {
@@ -1911,13 +1920,19 @@ function truckSummaries() {
   return state.materialTrucks.map((truck, index) => {
     const range = truckPageRange(index);
     const info = dispatchInfoForTruck(truck);
-    const loadsCount = info?.loads?.length || 0;
-    const loadLabel = loadsCount > 1 ? 'Cargas' : 'Carga';
+    const pdfPallets = Number(palletInfoForTruck(truck)?.total);
+    const capacity = Number(info?.palletCapacity);
+    const palletDifference = Number.isFinite(pdfPallets) && Number.isFinite(capacity)
+      ? Math.max(0, pdfPallets - capacity)
+      : null;
     return {
       index,
       truck,
       loads: truckLoadValue(truck),
-      loadLabel,
+      loadLabel: (info?.loads?.length || 0) > 1 ? 'Cargas' : 'Carga',
+      pdfPallets: Number.isFinite(pdfPallets) ? String(pdfPallets) : 'No detectado',
+      capacity: Number.isFinite(capacity) ? String(capacity) : 'Sin capacidad',
+      palletDifference: palletDifference === null ? 'Sin cálculo' : String(palletDifference),
       time: state.stampTimeFromFile ? formatTime(state.stampTimeFromFile, state.timeFormat) : 'Sin hora',
       pages: range.label,
       pageBadge: range.shortLabel,
@@ -1961,6 +1976,9 @@ function renderTruckPanel() {
       </div>
       <div class="truck-meta">
         <div class="truck-meta-row"><span>${escapeHtml(item.loadLabel)}</span><strong>${escapeHtml(item.loads)}</strong></div>
+        <div class="truck-meta-row"><span>Tickets totales</span><strong>${escapeHtml(item.pdfPallets)}</strong></div>
+        <div class="truck-meta-row"><span>Capacidad</span><strong>${escapeHtml(item.capacity)}</strong></div>
+        <div class="truck-meta-row"><span>A anotar</span><strong>${escapeHtml(item.palletDifference)}</strong></div>
         <div class="truck-meta-row"><span>Hora del archivo</span><strong>${escapeHtml(item.time)}</strong></div>
         <div class="truck-meta-row"><span>Hojas</span><strong>${escapeHtml(item.pages)}</strong></div>
       </div>
@@ -2367,7 +2385,7 @@ async function handleFileSelect(e) {
 }
 
 async function analyzeMaterialPages(bytes) {
-  const result = { pages: [], trucks: [], dispatchDate: '', plasticTotals: {} };
+  const result = { pages: [], trucks: [], dispatchDate: '', plasticTotals: {}, palletTotals: {} };
   if (typeof pdfjsLib === 'undefined') return result;
   const pdfDoc = await pdfjsLib.getDocument({ data: copyBytes(bytes) }).promise;
   let previousTruck = null;
@@ -2383,6 +2401,7 @@ async function analyzeMaterialPages(bytes) {
       pageIndex,
       truck: activeTruck,
       plastic: analyzePlasticRows(textContent.items),
+      pallets: analyzePalletRows(textContent.items),
     });
     if (truck && truck !== previousTruck) {
       result.pages.push(pageIndex);
@@ -2391,6 +2410,34 @@ async function analyzeMaterialPages(bytes) {
     if (truck) previousTruck = truck;
   }
   result.plasticTotals = summarizePlasticTotals(pageRecords);
+  result.palletTotals = summarizePalletTotals(pageRecords);
+  return result;
+}
+
+function analyzePalletRows(items) {
+  const lines = groupTextItemsByLine(items);
+  const result = [];
+  lines.forEach(line => {
+    const columns = [
+      line.words.filter(word => word.x < 300),
+      line.words.filter(word => word.x >= 300),
+    ];
+    columns.forEach(words => {
+      const text = words.map(word => word.text).join(' ').replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      const matches = [...text.matchAll(/([\d.]+)\s*\/\s*[\d.]+\s+8531(?=\s|$)/g)];
+      matches.forEach(match => {
+        const quantity = Number(String(match[1]).replace(/\./g, ''));
+        if (!Number.isFinite(quantity)) return;
+        result.push({
+          code: '8531',
+          quantity,
+          x: words[0]?.x || 0,
+          y: line.y,
+        });
+      });
+    });
+  });
   return result;
 }
 
@@ -2506,6 +2553,27 @@ function summarizePlasticTotals(pageRecords) {
   return totals;
 }
 
+function summarizePalletTotals(pageRecords) {
+  const totals = {};
+  pageRecords.forEach(record => {
+    if (!record.truck || !record.pallets.length) return;
+    if (!totals[record.truck]) {
+      totals[record.truck] = {
+        total: 0,
+        pageIndex: record.pageIndex,
+        hits: [],
+      };
+    }
+    const current = totals[record.truck];
+    record.pallets.forEach(hit => {
+      current.total += hit.quantity;
+      current.pageIndex = record.pageIndex;
+      current.hits.push({ pageIndex: record.pageIndex, code: hit.code, quantity: hit.quantity });
+    });
+  });
+  return totals;
+}
+
 function detectGuideDate(text) {
   const normalized = String(text || '').replace(/\s+/g, ' ').trim();
   const preferred = normalized.match(/\bCONCEPCION\s+(\d{2})\/(\d{2})\/(\d{4})\b/i);
@@ -2565,6 +2633,7 @@ async function loadPdf(file) {
     state.materialPages = materialAnalysis.pages;
     state.materialTrucks = materialAnalysis.trucks;
     state.plasticTotals = materialAnalysis.plasticTotals || {};
+    state.palletTotals = materialAnalysis.palletTotals || {};
     state.dispatchDate = materialAnalysis.dispatchDate;
     state.dispatchData = null;
     state.selectedTruckIndex = 0;
@@ -2624,7 +2693,7 @@ async function loadPdf(file) {
       else toast('Material operativo activo, pero no detecté camiones en este PDF', 'info');
     }
     if (state.dispatchData?.matchedCount) {
-      toast('Cargas preventa: ' + state.dispatchData.matchedCount + ' camiones encontrados', 'success');
+      toast('Capacidad de pallets: ' + state.dispatchData.matchedCount + ' camiones encontrados', 'success');
     }
     if (state.stampEnabled && !state.selectedStampId) {
       toast('Agrega o selecciona un timbre para poder aplicar timbres', 'info');
@@ -2640,10 +2709,10 @@ async function loadPdf(file) {
 }
 
 async function loadDispatchData() {
-  if (!state.dispatchDate || !state.materialTrucks.length) return;
+  if (!state.materialTrucks.length) return;
   try {
     const params = new URLSearchParams({
-      fecha: state.dispatchDate,
+      fecha: state.dispatchDate || '',
       trucks: state.materialTrucks.join(','),
     });
     const response = await fetch('/api/dispatch-data?' + params.toString(), { cache: 'no-store' });
@@ -2655,15 +2724,14 @@ async function loadDispatchData() {
       if (item?.truck) byTruck[item.truck] = item;
     });
     state.dispatchData = {
-      fecha: payload.fecha,
       sucursal: payload.sucursal,
       byTruck,
-      matchedCount: payload.trucks.filter(item => item.found || item.loads?.length).length,
+      matchedCount: payload.trucks.filter(item => item.palletCapacity !== null && item.palletCapacity !== undefined && item.palletCapacity !== '').length,
     };
   } catch (err) {
-    console.warn('No se pudo cargar preventa Neon:', err);
+    console.warn('No se pudo cargar capacidad Neon:', err);
     state.dispatchData = null;
-    toast('No se pudo cargar la preventa desde Neon. Puedes seguir usando la app con los datos manuales.', 'warning');
+    toast('No se pudo cargar la capacidad de camiones desde Neon. Puedes seguir usando la app con los datos del PDF.', 'warning');
   }
 }
 
@@ -3000,6 +3068,9 @@ async function saveTruckHistoryItems() {
       name: 'Camión: ' + truck.truck + ' · Fecha: ' + dateLabel,
       truck: truck.truck,
       loads: truckLoadFileValue(truck.truck),
+      pallets: truck.pdfPallets,
+      palletCapacity: truck.capacity,
+      palletDifference: truck.palletDifference,
       pageCount: pageIndexes.length,
       stampName: state.stampEnabled ? ((selectedStamp()?.name || 'Timbre') + (state.doubleStamp ? ' x2' : '')) : 'Sin timbre',
       timeEnabled: state.timeEnabled,
@@ -3179,10 +3250,17 @@ function renderHistoryForDay(groups, dayKey) {
 
 function historyItemMeta(item) {
   const parts = [];
-  if (item.type === 'truck' && item.loads) {
-    const loadsCount = (item.loads || '').split(' / ').filter(Boolean).length;
-    const label = loadsCount > 1 ? 'Cargas' : 'Carga';
-    parts.push(label + ' ' + item.loads);
+  if (item.type === 'truck') {
+    if (item.loads) {
+      const loadsCount = (item.loads || '').split(' / ').filter(Boolean).length;
+      const label = loadsCount > 1 ? 'Cargas' : 'Carga';
+      parts.push(label + ' ' + item.loads);
+    }
+    if (item.palletDifference && item.palletDifference !== 'Sin cálculo') {
+      parts.push('Tickets ' + item.pallets + ' · anota ' + item.palletDifference);
+    } else if (item.pallets) {
+      parts.push('Tickets ' + item.pallets);
+    }
   }
   if (item.dispatchDate) parts.push(formatDispatchDate(item.dispatchDate));
   
@@ -3217,19 +3295,31 @@ function renderDetectionSummary() {
   const paperHint = isLandscape ? 'Timbre doble · sin hora' : 'Timbre simple · hora y material';
   const dateLabel = state.dispatchDate ? formatDispatchDate(state.dispatchDate) : 'No detectada';
 
-  const preventa = state.dispatchData;
-  let preventaValue = 'Sin conexión';
-  let preventaHint = 'Datos manuales activos';
-  let preventaColor = '';
-  if (preventa?.matchedCount) {
-    const suc = preventa.sucursal || '';
-    preventaValue = suc + ' · ' + preventa.matchedCount + ' camión' + (preventa.matchedCount !== 1 ? 'es' : '') + ' ok';
-    preventaHint = 'Cargas cargadas desde Neon';
-    preventaColor = 'green';
-  } else if (preventa) {
-    preventaValue = (preventa.sucursal || 'Conectada') + ' · 0 coincidencias';
-    preventaHint = 'Conectada pero sin datos para esta fecha';
-    preventaColor = 'amber';
+  const capacityData = state.dispatchData;
+  let capacityValue = 'Sin conexión';
+  let capacityHint = 'El PDF se puede leer, pero falta capacidad';
+  let capacityColor = '';
+  if (capacityData?.matchedCount) {
+    const suc = capacityData.sucursal || '';
+    capacityValue = suc + ' · ' + capacityData.matchedCount + ' camión' + (capacityData.matchedCount !== 1 ? 'es' : '') + ' ok';
+    capacityHint = 'Capacidad máxima cargada desde Neon';
+    capacityColor = 'green';
+  } else if (capacityData) {
+    capacityValue = (capacityData.sucursal || 'Conectada') + ' · 0 capacidades';
+    capacityHint = 'Conectada, pero no encontró esos camiones';
+    capacityColor = 'amber';
+  }
+
+  const palletEntries = Object.values(state.palletTotals || {});
+  const totalPallets = palletEntries.reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+  let palletValue = 'Sin datos';
+  let palletHint = '';
+  let palletColor = '';
+  if (totalPallets > 0) {
+    palletValue = totalPallets + ' pallet' + (totalPallets !== 1 ? 's' : '');
+    const palletTruckCount = palletEntries.filter(item => Number(item?.total) > 0).length;
+    palletHint = palletTruckCount + ' camión' + (palletTruckCount !== 1 ? 'es' : '') + ' con código 8531';
+    palletColor = 'green';
   }
 
   let truckValue = 'No detectados';
@@ -3256,8 +3346,9 @@ function renderDetectionSummary() {
   const cards = [
     { icon: '📅', label: 'Fecha de guía', value: dateLabel, hint: state.pageCount + ' página' + (state.pageCount !== 1 ? 's' : '') + ' en el archivo', color: state.dispatchDate ? 'green' : '' },
     { icon: '🚛', label: 'Camiones', value: truckValue, hint: truckHint, color: truckColor },
+    { icon: '▦', label: 'Tickets totales', value: palletValue, hint: palletHint, color: palletColor },
     { icon: '📦', label: 'Envases Superlitro', value: envaseValue, hint: envaseHint, color: envaseColor },
-    { icon: '🔗', label: 'Preventa Neon', value: preventaValue, hint: preventaHint, color: preventaColor },
+    { icon: '🔗', label: 'Capacidad Neon', value: capacityValue, hint: capacityHint, color: capacityColor },
     { icon: '📄', label: 'Formato papel', value: paperFormat, hint: paperHint, color: '' },
   ];
 
@@ -3301,14 +3392,17 @@ async function loadHistoryPdf(item) {
     state.materialPages = [0];
     state.materialTrucks = [item.truck || ''];
     state.plasticTotals = {};
+    state.palletTotals = item.pallets ? { [item.truck]: { total: Number(item.pallets) || 0, pageIndex: 0, hits: [] } } : {};
     state.dispatchDate = item.dispatchDate || '';
     state.dispatchData = {
       byTruck: {
         [item.truck]: {
           truck: item.truck,
           loads: (item.loads || '').split(' / ').filter(Boolean).map(c => ({ carga: c })),
+          palletCapacity: Number(item.palletCapacity),
         }
-      }
+      },
+      matchedCount: item.palletCapacity && item.palletCapacity !== 'Sin capacidad' ? 1 : 0,
     };
     state.selectedTruckIndex = 0;
     state.currentPageIndex = 0;
@@ -3715,6 +3809,7 @@ function resetAll() {
   state.materialPages = [];
   state.materialTrucks = [];
   state.plasticTotals = {};
+  state.palletTotals = {};
   state.dispatchDate = '';
   state.dispatchData = null;
   state.selectedTruckIndex = 0;

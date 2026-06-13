@@ -44,10 +44,6 @@ function parseTruck(value) {
   };
 }
 
-function isIsoDate(value) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(cleanString(value));
-}
-
 function parseTruckList(value) {
   return cleanString(value)
     .split(",")
@@ -56,25 +52,51 @@ function parseTruckList(value) {
     .filter((truck, index, arr) => arr.indexOf(truck) === index);
 }
 
+function isIsoDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(cleanString(value));
+}
+
 function asRecords(row) {
   return Array.isArray(row?.detail_json) ? row.detail_json : [];
 }
 
-function buildLoadSummary(rows, requestedTrucks) {
-  const byTruck = new Map(requestedTrucks.map((truck) => [truck, {
+function buildTruckSummary(requestedTrucks) {
+  return new Map(requestedTrucks.map((truck) => [truck, {
     truck,
     truckBase: parseTruck(truck).base,
     found: false,
     loads: [],
     loadCount: 0,
-    ticketCount: 0,
     palletCapacity: null,
-    palletDifference: null,
-    source: "",
     sucursal: "",
   }]));
+}
 
-  for (const row of rows) {
+async function applyLoadNames(client, byTruck, fecha, sucursalCode) {
+  if (!isIsoDate(fecha)) return;
+
+  const params = [fecha];
+  let sucursalFilter = "";
+  if (sucursalCode) {
+    params.push(sucursalCode);
+    sucursalFilter = `AND s.codigo = $${params.length}`;
+  }
+
+  const result = await client.query(
+    `SELECT
+       s.codigo AS sucursal_codigo,
+       f.fuente,
+       f.detail_json
+     FROM preventa_beta_fuentes f
+     JOIN sucursales s ON s.id = f.sucursal_id
+     WHERE f.fecha_preventa = $1::DATE
+       AND f.deleted_at IS NULL
+       ${sucursalFilter}
+     ORDER BY f.fuente`,
+    params
+  );
+
+  for (const row of result.rows) {
     for (const record of asRecords(row)) {
       const trip = normalizeTruck(record?.camViaje);
       if (!trip || !byTruck.has(trip)) continue;
@@ -82,19 +104,11 @@ function buildLoadSummary(rows, requestedTrucks) {
       const carga = cleanString(record?.carga);
       if (!carga) continue;
       if (current.loads.some((load) => load.carga === carga)) continue;
-      const tickets = Number(record?.tickets) || 0;
-      current.loads.push({ carga, tickets });
-      current.ticketCount += tickets;
-      current.found = true;
-      current.source = current.source || cleanString(row.fuente);
+      current.loads.push({ carga });
+      current.loadCount = current.loads.length;
       current.sucursal = current.sucursal || cleanString(row.sucursal_codigo);
     }
   }
-
-  for (const item of byTruck.values()) {
-    item.loadCount = item.loads.length;
-  }
-  return byTruck;
 }
 
 async function applyPalletCapacities(client, byTruck, sucursalCode) {
@@ -129,7 +143,8 @@ async function applyPalletCapacities(client, byTruck, sucursalCode) {
     const capacity = found?.capacidad_pallets;
     if (capacity !== null && capacity !== undefined && capacity !== "") {
       item.palletCapacity = Number(capacity);
-      item.palletDifference = Math.max(0, item.ticketCount - item.palletCapacity);
+      item.found = true;
+      item.sucursal = cleanString(found?.sucursal_codigo);
     }
   }
 }
@@ -146,38 +161,16 @@ module.exports = async function handler(req, res) {
     const trucks = parseTruckList(url.searchParams.get("trucks"));
     const sucursal = cleanString(url.searchParams.get("sucursal") || process.env.SELLOGUIA_SUCURSAL || "CE00").toUpperCase();
 
-    if (!isIsoDate(fecha)) return sendJson(res, 400, { ok: false, error: "fecha debe venir como YYYY-MM-DD" });
     if (!trucks.length) return sendJson(res, 400, { ok: false, error: "trucks debe incluir al menos un camion" });
 
     const client = await getPool().connect();
     try {
-      const params = [fecha];
-      let sucursalFilter = "";
-      if (sucursal) {
-        params.push(sucursal);
-        sucursalFilter = `AND s.codigo = $${params.length}`;
-      }
-
-      const result = await client.query(
-        `SELECT
-           s.codigo AS sucursal_codigo,
-           f.fuente,
-           f.detail_json
-         FROM preventa_beta_fuentes f
-         JOIN sucursales s ON s.id = f.sucursal_id
-         WHERE f.fecha_preventa = $1::DATE
-           AND f.deleted_at IS NULL
-           ${sucursalFilter}
-         ORDER BY f.fuente`,
-        params
-      );
-
-      const byTruck = buildLoadSummary(result.rows, trucks);
+      const byTruck = buildTruckSummary(trucks);
+      await applyLoadNames(client, byTruck, fecha, sucursal);
       await applyPalletCapacities(client, byTruck, sucursal);
 
       return sendJson(res, 200, {
         ok: true,
-        fecha,
         sucursal,
         trucks: Array.from(byTruck.values()),
       });
@@ -186,6 +179,6 @@ module.exports = async function handler(req, res) {
     }
   } catch (err) {
     console.error("dispatch-data error", err);
-    return sendJson(res, 500, { ok: false, error: "No se pudo consultar la preventa" });
+    return sendJson(res, 500, { ok: false, error: "No se pudo consultar la capacidad de pallets" });
   }
 };
