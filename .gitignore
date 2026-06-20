@@ -33,6 +33,7 @@ id_ed25519*
 
 # Local scratch folders
 node_modules/
+dist/
 tmp/
 temp/
 scratch/

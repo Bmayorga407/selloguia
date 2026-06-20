@@ -1,6 +1,26 @@
 # Seguridad de SelloGuia
 
-SelloGuia es una pagina estatica: los PDFs y timbres se procesan en el navegador y no se suben a un servidor del proyecto.
+SelloGuia procesa PDFs, timbres, historial y base de camiones en el equipo local. La version de escritorio esta configurada para bloquear conexiones externas por HTTP, HTTPS, WebSocket y FTP.
+
+## Flujo local
+
+- Los PDFs se leen desde el equipo del usuario.
+- El PDF sellado se genera en memoria como `Blob`.
+- La impresion se abre desde ese `Blob` local, no desde un servidor externo.
+- El historial queda en `IndexedDB` del navegador/app.
+- La base de camiones queda en `localStorage` del navegador/app.
+- Las librerias PDF.js, PDF-lib y GSAP se cargan desde la carpeta local `vendor/`.
+
+## Bloqueos de la app de escritorio
+
+La capa Electron en `electron/main.js`:
+
+- bloquea solicitudes `http:`, `https:`, `ws:`, `wss:` y `ftp:`;
+- bloquea navegacion externa;
+- bloquea ventanas externas que no sean locales o `blob:`;
+- desactiva integracion Node en la ventana;
+- usa aislamiento de contexto y sandbox;
+- aplica una politica de seguridad con `connect-src 'none'`.
 
 ## Que no debe subirse a este repo
 
@@ -21,4 +41,3 @@ Si el filtro bloquea un commit, lo normal es quitar ese archivo del commit. La a
 ## Recomendacion para GitHub
 
 Mantener el repo como privado si solo sera de uso interno. Si se usa GitHub Pages publico, asumir que cualquier persona puede ver el codigo del sitio.
-

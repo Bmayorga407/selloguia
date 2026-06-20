@@ -3,13 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; frame-src blob:; worker-src 'self' blob: https://cdnjs.cloudflare.com; connect-src 'self' https://cdnjs.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; frame-src blob:; worker-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>SelloGuía — Automatiza tus guías de despacho</title>
 <link rel="icon" href="data:,">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #f3f4f7;
@@ -35,7 +32,7 @@ html{font-size:15px}
 html{color-scheme:light}
 
 body{
-  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   background:var(--bg);
   color:var(--text);
   min-height:100vh;
@@ -92,7 +89,7 @@ body::before{
   gap:12px;
 }
 .page-count{
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:0.8rem;
   color:var(--text3);
   background:#fff;
@@ -229,7 +226,7 @@ body::before{
   text-overflow:ellipsis;
 }
 .stamp-meta{
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:0.68rem;
   color:var(--text3);
   margin-top:2px;
@@ -342,7 +339,7 @@ body::before{
 .upload-zone p{color:var(--text3);font-size:0.82rem}
 .upload-hint{
   margin-top:16px;
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:0.7rem;
   color:var(--text3);
   padding:6px 14px;
@@ -454,7 +451,7 @@ body::before{
   font-size:0.85rem;
 }
 .file-badge .name{font-weight:600;max-width:min(200px,42vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.file-badge .pages{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text3)}
+.file-badge .pages{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.72rem;color:var(--text3)}
 .file-badge .close{cursor:pointer;color:var(--text3);font-size:1rem;transition:color var(--transition);background:transparent;border:0;font:inherit}
 .file-badge .close:hover{color:var(--red)}
 .toolbar-actions{
@@ -594,7 +591,7 @@ body::before{
   font-weight:800;
 }
 .truck-pages{
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   color:var(--text3);
   font-size:0.7rem;
 }
@@ -696,7 +693,7 @@ body::before{
   border:1px solid var(--border);
   border-radius:12px;
   padding:8px 12px;
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 .live-time .label{font-size:0.72rem;color:var(--text3)}
 .live-time .value{font-size:1.05rem;font-weight:700;color:var(--green);letter-spacing:0}
@@ -785,6 +782,14 @@ body::before{
   padding:14px 22px;
   border-radius:14px;
 }
+.btn-batch-copies{
+  width:100%;
+  justify-content:center;
+  display:none;
+}
+.btn-batch-copies.visible{
+  display:inline-flex;
+}
 .rotation-control{
   width:100%;
   display:flex;
@@ -827,7 +832,7 @@ body::before{
   font-weight:700;
 }
 .rotation-label output{
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   color:var(--text3);
   font-weight:500;
 }
@@ -851,7 +856,7 @@ body::before{
   font-weight:700;
 }
 .size-label output{
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   color:var(--text3);
   font-weight:500;
 }
@@ -933,7 +938,7 @@ body::before{
   letter-spacing:0.02em;
 }
 .detection-card-value{
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:0.78rem;
   font-weight:600;
   color:var(--text);
@@ -982,7 +987,7 @@ body::before{
   border-top:1px solid var(--border);
   font-size:0.72rem;
   color:var(--text3);
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--text3)}
 .status-dot.ready{background:var(--green)}
@@ -1065,6 +1070,16 @@ body::before{
 .optional-upload[open] summary{margin-bottom:10px;color:var(--text2)}
 .optional-upload[open] summary::before{content:'-'}
 .modal input[type="file"]{padding:8px;cursor:pointer}
+.modal input[type="number"]{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:12px 13px;
+  color:var(--text);
+  font-family:inherit;
+  font-size:0.95rem;
+}
+.modal input[type="number"]:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-color:var(--red)}
 .modal input[type="file"]::file-selector-button{
   background:var(--surface3);
   border:1px solid var(--border-light);
@@ -1117,7 +1132,7 @@ body::before{
 }
 .history-day-tab span{
   color:var(--text3);
-  font-family:'DM Mono',monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:0.68rem;
 }
 .history-day-tab.active{
@@ -1152,10 +1167,48 @@ body::before{
 }
 .history-info{min-width:0;display:flex;flex-direction:column;gap:4px}
 .history-info strong{font-size:0.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.history-info span{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--text3)}
+.history-info span{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.68rem;color:var(--text3)}
 .history-empty{color:var(--text3);font-size:0.85rem;line-height:1.5;padding:18px;text-align:center}
 .history-search{margin-bottom:10px}
 .history-search-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:0.85rem;color:var(--text)}
+.truck-base-toolbar{
+  display:flex;
+  gap:10px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+.truck-base-toolbar .history-search-input{margin:0;min-width:180px;flex:1}
+.truck-base-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:360px;
+  overflow:auto;
+}
+.truck-base-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 12px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--surface2);
+}
+.truck-base-info{min-width:0;display:flex;flex-direction:column;gap:3px}
+.truck-base-info strong{font-size:0.88rem}
+.truck-base-info span{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:0.68rem;color:var(--text3)}
+.truck-base-actions{display:flex;gap:8px;flex-shrink:0}
+.truck-base-empty{
+  color:var(--text3);
+  font-size:0.85rem;
+  line-height:1.5;
+  padding:18px;
+  text-align:center;
+  border:1px dashed var(--border-light);
+  border-radius:12px;
+  background:var(--surface2);
+}
 
 /* Responsive */
 @media(max-width:1180px){
@@ -1234,7 +1287,7 @@ body::before{
   .workspace-side-panel{display:none}
   .canvas-wrapper{width:min(100%,430px)}
   .action-bar{align-items:stretch}
-  .action-summary,.btn-main,.rotation-control,.size-control{width:100%}
+  .action-summary,.btn-main,.btn-batch-copies,.rotation-control,.size-control{width:100%}
 }
 @media(max-width:640px){
   .header{padding:0 16px}
@@ -1261,6 +1314,7 @@ body::before{
   <div class="logo">SelloGuía <mark>beta</mark></div>
   <div class="header-right">
     <span class="page-count" id="pageCount">0 págs</span>
+    <button class="btn-icon" onclick="openTruckBaseModal()" title="Base camiones" aria-label="Base camiones">▤</button>
     <button class="btn-icon" onclick="openHistoryModal()" title="Historial" aria-label="Historial de PDFs">◴</button>
     <button class="btn-icon" onclick="resetAll()" title="Nuevo" aria-label="Nueva guía">⟳</button>
   </div>
@@ -1358,6 +1412,7 @@ body::before{
           </div>
         </div>
         <button class="btn btn-primary btn-main" id="btnApply" onclick="handlePrimaryAction()" disabled>✦ Aplicar timbre</button>
+        <button class="btn btn-secondary btn-batch-copies" id="btnBatchCopies" type="button" onclick="printMaterialCopies()" disabled>Imprimir con y sin material</button>
         <div class="rotation-control">
           <label class="rotation-label" for="stampRotationInput">
             Inclinación del timbre
@@ -1391,6 +1446,7 @@ body::before{
 </footer>
 
 <input type="file" id="fileInput" accept=".pdf" hidden onchange="handleFileSelect(event)">
+<input type="file" id="truckImportInput" accept=".xlsx,.xls,.csv" hidden onchange="handleTruckImportFile(event)">
 <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
 <div class="modal-overlay" id="stampModal" style="display:none" onclick="if(event.target===this)closeAddStampModal()" role="dialog" aria-modal="true" aria-labelledby="stampModalTitle">
@@ -1430,9 +1486,46 @@ body::before{
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<div class="modal-overlay" id="truckBaseModal" style="display:none" onclick="if(event.target===this)closeTruckBaseModal()" role="dialog" aria-modal="true" aria-labelledby="truckBaseModalTitle">
+  <div class="modal history-modal">
+    <h3 id="truckBaseModalTitle">Base camiones</h3>
+    <p class="history-intro">Capacidades guardadas solo en este equipo.</p>
+    <div class="truck-base-toolbar">
+      <input class="history-search-input" type="search" id="truckBaseSearch" placeholder="Buscar camión" oninput="renderTruckBaseList()" autocomplete="off">
+      <button class="btn btn-secondary btn-sm" type="button" onclick="openTruckImportPicker()">Importar Excel</button>
+      <button class="btn btn-primary btn-sm" type="button" onclick="openTruckForm()">Agregar</button>
+    </div>
+    <div class="truck-base-list" id="truckBaseList">
+      <div class="truck-base-empty">Aún no hay camiones guardados.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeTruckBaseModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="truckFormModal" style="display:none" onclick="if(event.target===this)closeTruckForm()" role="dialog" aria-modal="true" aria-labelledby="truckFormTitle">
+  <div class="modal">
+    <h3 id="truckFormTitle">Agregar camión</h3>
+    <div class="form-group">
+      <label for="truckNumberInput">Número de camión</label>
+      <input type="text" id="truckNumberInput" placeholder="Ej: 123A" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label for="truckCapacityInput">Capacidad de pallets</label>
+      <input type="number" id="truckCapacityInput" min="0" step="1" placeholder="Ej: 18">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeTruckForm()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="saveTruckForm()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/pdf.min.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="vendor/gsap.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
 <script>
 // ─── State ────────────────────────────────────────────────
 const state = {
@@ -1488,6 +1581,7 @@ const HISTORY_DB = 'selloguia_history_db';
 const HISTORY_STORE = 'pdfs';
 const HISTORY_LIMIT = 200;
 const HISTORY_MAX_DAYS = 3;
+const TRUCK_BASE_STORAGE = 'selloguia_truck_base';
 const TIME_FONT_SIZE_PT = 12;
 const TIME_PRINT_Y_OFFSET_PT = 5;
 const MATERIAL_FONT_SIZE_PT = 6.7;
@@ -1531,6 +1625,7 @@ const actionIcon = $('actionIcon');
 const actionTitle = $('actionTitle');
 const actionHint = $('actionHint');
 const btnPrintTruck = $('btnPrintTruck');
+const btnBatchCopies = $('btnBatchCopies');
 const stampToggle = $('stampToggle');
 const doubleStampToggle = $('doubleStampToggle');
 const timeToggle = $('timeToggle');
@@ -1563,12 +1658,15 @@ let loadingTween = null;
 let selectedHistoryDay = '';
 let historySearchQuery = '';
 let currentHistoryGroups = [];
+let truckBase = [];
+let editingTruckId = '';
 
 // ─── Init ─────────────────────────────────────────────────
 if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
 }
 loadStampLibrary();
+loadTruckBase();
 resetMarkerSettings();
 loadSettings();
 updateClock();
@@ -1770,7 +1868,7 @@ function timeMarkerSize(){
   const fontSize = timePreviewFontSize();
   const label = formatTime(getStampTime(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
   mctx.save();
-  mctx.font = '800 ' + fontSize + 'px "DM Mono", ui-monospace, monospace';
+  mctx.font = '800 ' + fontSize + 'px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
   const w = mctx.measureText(label).width;
   mctx.restore();
   return { w: Math.ceil(w), h: Math.ceil(fontSize * 1.18) };
@@ -2044,7 +2142,7 @@ function materialBlockBoundsCanvas() {
   const metrics = materialPreviewMetrics();
   const rows = materialRowsForTruck(truckForPage(currentPreviewPageIndex()));
   mctx.save();
-  mctx.font = '800 ' + metrics.fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
+  mctx.font = '800 ' + metrics.fontSize + 'px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
   const articleWidth = Math.max(...rows.map(row => mctx.measureText(row.article).width));
   const codeWidth = Math.max(...rows.map(row => mctx.measureText(row.code).width));
   const devolutionWidth = Math.max(...rows.map(row => mctx.measureText(row.devolution || '').width));
@@ -2249,7 +2347,7 @@ function drawMarkers() {
     const timeLabel = formatTime(getStampTime(), state.timeFormat.includes('ss') ? 'HH:mm:ss' : 'HH:mm');
     const timeFontSize = timePreviewFontSize();
     mctx.save();
-    mctx.font = '800 ' + timeFontSize + 'px "DM Mono", ui-monospace, monospace';
+    mctx.font = '800 ' + timeFontSize + 'px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
     mctx.textAlign = 'left';
     mctx.textBaseline = 'top';
     mctx.fillStyle = '#050505';
@@ -2280,7 +2378,7 @@ function drawStampPreview(x, y, w, h, stampImage) {
     mctx.fillStyle = 'rgba(232,17,27,0.08)';
     mctx.fillRect(-w / 2, -h / 2, w, h);
     mctx.fillStyle = '#e8111b';
-    mctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+    mctx.font = 'bold 11px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
     mctx.textAlign = 'center';
     mctx.fillText('TIMBRE', 0, -h / 2 - 7);
   }
@@ -2293,7 +2391,7 @@ function drawMaterialPreview() {
   const metrics = materialPreviewMetrics();
   const rows = materialRowsForTruck(truckForPage(currentPreviewPageIndex()));
   mctx.save();
-  mctx.font = '800 ' + metrics.fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
+  mctx.font = '800 ' + metrics.fontSize + 'px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
   mctx.textBaseline = 'alphabetic';
   mctx.fillStyle = '#050505';
   rows.forEach((row, index) => {
@@ -2316,7 +2414,7 @@ function drawLoadLabelPreview(label) {
   const y = LOAD_LABEL_POSITION_MM.y / (state.pageHeight / PT_PER_MM) * pageCanvas.height;
   const fontSize = Math.max(7, LOAD_LABEL_FONT_SIZE_PT * (pageCanvas.height / state.pageHeight));
   mctx.save();
-  mctx.font = '800 ' + fontSize + 'px "Plus Jakarta Sans", ui-sans-serif, sans-serif';
+  mctx.font = '800 ' + fontSize + 'px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
   mctx.textAlign = 'left';
   mctx.textBaseline = 'alphabetic';
   mctx.fillStyle = '#050505';
@@ -2710,29 +2808,72 @@ async function loadPdf(file) {
 
 async function loadDispatchData() {
   if (!state.materialTrucks.length) return;
-  try {
-    const params = new URLSearchParams({
-      fecha: state.dispatchDate || '',
-      trucks: state.materialTrucks.join(','),
-    });
-    const response = await fetch('/api/dispatch-data?' + params.toString(), { cache: 'no-store' });
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    const payload = await response.json();
-    if (!payload?.ok || !Array.isArray(payload.trucks)) return;
-    const byTruck = {};
-    payload.trucks.forEach(item => {
-      if (item?.truck) byTruck[item.truck] = item;
-    });
-    state.dispatchData = {
-      sucursal: payload.sucursal,
-      byTruck,
-      matchedCount: payload.trucks.filter(item => item.palletCapacity !== null && item.palletCapacity !== undefined && item.palletCapacity !== '').length,
+  const byTruck = {};
+  state.materialTrucks.forEach(truck => {
+    const localTruck = findLocalTruck(truck);
+    byTruck[truck] = {
+      truck,
+      truckBase: parseTruck(truck).base,
+      found: Boolean(localTruck),
+      loads: [],
+      loadCount: 0,
+      palletCapacity: localTruck ? Number(localTruck.capacity) : null,
+      sucursal: 'LOCAL',
     };
-  } catch (err) {
-    console.warn('No se pudo cargar capacidad Neon:', err);
-    state.dispatchData = null;
-    toast('No se pudo cargar la capacidad de camiones desde Neon. Puedes seguir usando la app con los datos del PDF.', 'warning');
+  });
+  state.dispatchData = {
+    sucursal: 'Local',
+    byTruck,
+    matchedCount: Object.values(byTruck).filter(item => Number.isFinite(Number(item.palletCapacity))).length,
+  };
+}
+
+function normalizeTruck(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+}
+
+function parseTruck(value) {
+  const normalized = normalizeTruck(value);
+  const match = normalized.match(/^(\d+)([A-Z]*)$/);
+  return {
+    full: normalized,
+    base: match?.[1] || normalized,
+    suffix: match?.[2] || '',
+  };
+}
+
+function loadTruckBase() {
+  try {
+    const rows = JSON.parse(localStorage.getItem(TRUCK_BASE_STORAGE) || '[]');
+    truckBase = Array.isArray(rows)
+      ? rows.map(row => ({
+          id: normalizeTruck(row.id || row.truck),
+          truck: normalizeTruck(row.truck || row.id),
+          capacity: Number(row.capacity),
+          updatedAt: Number(row.updatedAt) || Date.now(),
+        })).filter(row => row.truck && Number.isFinite(row.capacity))
+      : [];
+  } catch {
+    truckBase = [];
   }
+}
+
+function saveTruckBase() {
+  localStorage.setItem(TRUCK_BASE_STORAGE, JSON.stringify(truckBase));
+}
+
+function findLocalTruck(truck) {
+  const parsed = parseTruck(truck);
+  return truckBase.find(item => item.truck === parsed.full)
+    || truckBase.find(item => item.truck === parsed.base)
+    || null;
+}
+
+async function refreshLocalTruckData() {
+  await loadDispatchData();
+  renderTruckPanel();
+  renderDetectionSummary();
+  updateApplyButton();
 }
 
 // ─── Apply Stamps ─────────────────────────────────────────
@@ -2764,7 +2905,8 @@ function canBuildStampedPdf() {
   return true;
 }
 
-async function buildStampedPdfBytes(pageIndexes) {
+async function buildStampedPdfBytes(pageIndexes, options = {}) {
+  const includeMaterial = options.includeMaterial !== false;
   const sourcePdf = await PDFLib.PDFDocument.load(copyBytes(state.pdfBytes));
   const selectedPageIndexes = Array.isArray(pageIndexes)
     ? pageIndexes
@@ -2783,7 +2925,7 @@ async function buildStampedPdfBytes(pageIndexes) {
       ? await pdfDoc.embedPng(stampBytes)
       : await pdfDoc.embedJpg(stampBytes);
   }
-  const hasMaterialTargets = state.materialEnabled && state.materialPages.length > 0;
+  const hasMaterialTargets = includeMaterial && state.materialEnabled && state.materialPages.length > 0;
   const hasPlasticTargets = hasPlasticTotals();
   const needsTextFont = state.timeEnabled || hasMaterialTargets || hasDispatchLoads() || hasPlasticTargets;
   const font = needsTextFont ? await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold) : null;
@@ -2805,7 +2947,7 @@ async function buildStampedPdfBytes(pageIndexes) {
       if (state.doubleStamp) drawStampOnPdfPage(page, stampImage, state.stamp2Position, height, stampWpt, stampHpt, rotation);
     }
 
-    if (state.materialEnabled && state.materialPages.includes(pageIndex) && font) {
+    if (includeMaterial && state.materialEnabled && state.materialPages.includes(pageIndex) && font) {
       drawMaterialOnPdfPage(page, font, height, materialFontSize, materialRowGap, materialExtraGap, truckForPage(pageIndex));
     }
 
@@ -2827,6 +2969,42 @@ async function buildStampedPdfBytes(pageIndexes) {
   }
 
   return pdfDoc.save();
+}
+
+async function printMaterialCopies() {
+  if (!state.materialEnabled || !state.materialPages.length) {
+    toast('Activa material operativo para generar ambas copias', 'error');
+    return;
+  }
+  if (!canBuildStampedPdf()) return;
+
+  const previousText = btnBatchCopies?.textContent || '';
+  if (btnBatchCopies) {
+    btnBatchCopies.disabled = true;
+    btnBatchCopies.textContent = 'Preparando copias...';
+  }
+  setStatus('processing', 'Preparando copias con y sin material...');
+
+  try {
+    const [withMaterialBytes, withoutMaterialBytes] = await Promise.all([
+      buildStampedPdfBytes(null, { includeMaterial: true }),
+      buildStampedPdfBytes(null, { includeMaterial: false }),
+    ]);
+    const baseName = (state.currentFileName || 'selloguia.pdf').replace(/\.pdf$/i, '');
+    await printPdf(withMaterialBytes, 'Copia con material lista para imprimir', baseName + '-con-material.pdf');
+    await printPdf(withoutMaterialBytes, 'Copia sin material lista para imprimir', baseName + '-sin-material.pdf');
+    setStatus('ready', 'Copias con y sin material listas');
+  } catch (err) {
+    console.error(err);
+    toast('Error al preparar ambas copias: ' + err.message, 'error');
+    setStatus('error', 'Error');
+  } finally {
+    if (btnBatchCopies) {
+      btnBatchCopies.disabled = false;
+      btnBatchCopies.textContent = previousText || 'Imprimir con y sin material';
+    }
+    updateApplyButton();
+  }
 }
 
 async function applyStamps() {
@@ -2959,9 +3137,22 @@ function drawPlasticTotalOnPdfPage(page, font, pageHeight, info) {
   });
 }
 
-function printPdf(bytes, successMessage) {
+async function printPdf(bytes, successMessage, fileNameOverride) {
   const pdfBytes = bytes || state.modifiedPdfBytes;
   if (!pdfBytes) return;
+
+  if (window.selloguiaDesktop?.openPdfForPrint) {
+    try {
+      const fileName = fileNameOverride || (state.currentFileName || 'selloguia.pdf').replace(/\.pdf$/i, '') + '-sellado.pdf';
+      await window.selloguiaDesktop.openPdfForPrint(pdfBytes, fileName);
+      toast(successMessage || 'PDF abierto para imprimir', 'success');
+      return;
+    } catch (err) {
+      console.warn('No se pudo abrir el PDF en visor externo:', err);
+      toast('No se pudo abrir el PDF externo. Intentaré imprimir desde la app.', 'warning');
+    }
+  }
+
   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const w = window.open(url, '_blank');
@@ -3296,17 +3487,17 @@ function renderDetectionSummary() {
   const dateLabel = state.dispatchDate ? formatDispatchDate(state.dispatchDate) : 'No detectada';
 
   const capacityData = state.dispatchData;
-  let capacityValue = 'Sin conexión';
-  let capacityHint = 'El PDF se puede leer, pero falta capacidad';
+  let capacityValue = 'Sin datos';
+  let capacityHint = 'Agrega camiones en la base local';
   let capacityColor = '';
   if (capacityData?.matchedCount) {
     const suc = capacityData.sucursal || '';
     capacityValue = suc + ' · ' + capacityData.matchedCount + ' camión' + (capacityData.matchedCount !== 1 ? 'es' : '') + ' ok';
-    capacityHint = 'Capacidad máxima cargada desde Neon';
+    capacityHint = 'Capacidad cargada desde este equipo';
     capacityColor = 'green';
   } else if (capacityData) {
-    capacityValue = (capacityData.sucursal || 'Conectada') + ' · 0 capacidades';
-    capacityHint = 'Conectada, pero no encontró esos camiones';
+    capacityValue = (capacityData.sucursal || 'Local') + ' · 0 capacidades';
+    capacityHint = 'No encontró esos camiones en la base local';
     capacityColor = 'amber';
   }
 
@@ -3348,7 +3539,7 @@ function renderDetectionSummary() {
     { icon: '🚛', label: 'Camiones', value: truckValue, hint: truckHint, color: truckColor },
     { icon: '▦', label: 'Tickets totales', value: palletValue, hint: palletHint, color: palletColor },
     { icon: '📦', label: 'Envases Superlitro', value: envaseValue, hint: envaseHint, color: envaseColor },
-    { icon: '🔗', label: 'Capacidad Neon', value: capacityValue, hint: capacityHint, color: capacityColor },
+    { icon: '▤', label: 'Capacidad local', value: capacityValue, hint: capacityHint, color: capacityColor },
     { icon: '📄', label: 'Formato papel', value: paperFormat, hint: paperHint, color: '' },
   ];
 
@@ -3366,6 +3557,189 @@ function renderDetectionSummary() {
 
 function closeHistoryModal() {
   $('historyModal').style.display = 'none';
+}
+
+function openTruckBaseModal() {
+  loadTruckBase();
+  $('truckBaseModal').style.display = 'flex';
+  renderTruckBaseList();
+  const search = $('truckBaseSearch');
+  if (search) search.focus();
+  if (typeof gsap !== 'undefined') {
+    gsap.fromTo('#truckBaseModal .history-modal', { autoAlpha: 0, y: 10, scale: 0.985 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.22, ease: 'power2.out', clearProps: 'opacity,visibility,transform' });
+  }
+}
+
+function closeTruckBaseModal() {
+  $('truckBaseModal').style.display = 'none';
+}
+
+function renderTruckBaseList() {
+  const list = $('truckBaseList');
+  if (!list) return;
+  const query = normalizeTruck($('truckBaseSearch')?.value || '');
+  const rows = truckBase
+    .filter(item => !query || item.truck.includes(query))
+    .sort((a, b) => truckNumber(a.truck) - truckNumber(b.truck) || a.truck.localeCompare(b.truck));
+  if (!rows.length) {
+    list.innerHTML = '<div class="truck-base-empty">' + (query ? 'No hay camiones con esa búsqueda.' : 'Aún no hay camiones guardados.') + '</div>';
+    return;
+  }
+  list.innerHTML = rows.map(item => `
+    <div class="truck-base-item">
+      <div class="truck-base-info">
+        <strong>Camión ${escapeHtml(item.truck)}</strong>
+        <span>Capacidad ${escapeHtml(item.capacity)} pallets</span>
+      </div>
+      <div class="truck-base-actions">
+        <button class="btn btn-secondary btn-sm" type="button" onclick="openTruckForm('${escapeHtml(item.truck)}')">Editar</button>
+        <button class="btn btn-ghost btn-sm" type="button" onclick="deleteTruckFromBase('${escapeHtml(item.truck)}')">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openTruckForm(truck = '') {
+  editingTruckId = normalizeTruck(truck);
+  const item = editingTruckId ? truckBase.find(row => row.truck === editingTruckId) : null;
+  $('truckFormTitle').textContent = item ? 'Editar camión' : 'Agregar camión';
+  $('truckNumberInput').value = item?.truck || '';
+  $('truckCapacityInput').value = item?.capacity ?? '';
+  $('truckFormModal').style.display = 'flex';
+  setTimeout(() => $('truckNumberInput')?.focus(), 0);
+}
+
+function closeTruckForm() {
+  $('truckFormModal').style.display = 'none';
+  editingTruckId = '';
+}
+
+async function saveTruckForm() {
+  const truck = normalizeTruck($('truckNumberInput')?.value || '');
+  const capacity = Number($('truckCapacityInput')?.value);
+  if (!truck) {
+    toast('Ingresa el número de camión', 'error');
+    return;
+  }
+  if (!Number.isFinite(capacity) || capacity < 0) {
+    toast('Ingresa una capacidad válida', 'error');
+    return;
+  }
+  const next = { id: truck, truck, capacity, updatedAt: Date.now() };
+  truckBase = truckBase.filter(item => item.truck !== truck && item.truck !== editingTruckId);
+  truckBase.push(next);
+  saveTruckBase();
+  closeTruckForm();
+  renderTruckBaseList();
+  if (state.materialTrucks.length) await refreshLocalTruckData();
+  toast('Camión guardado en la base local', 'success');
+}
+
+async function deleteTruckFromBase(truck) {
+  const normalized = normalizeTruck(truck);
+  truckBase = truckBase.filter(item => item.truck !== normalized);
+  saveTruckBase();
+  renderTruckBaseList();
+  if (state.materialTrucks.length) await refreshLocalTruckData();
+  toast('Camión eliminado de la base local', 'info');
+}
+
+function openTruckImportPicker() {
+  const input = $('truckImportInput');
+  if (!input) return;
+  input.value = '';
+  input.click();
+}
+
+async function handleTruckImportFile(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    toast('No está disponible el lector de Excel', 'error');
+    return;
+  }
+
+  try {
+    const rows = await readTruckImportRows(file);
+    const imported = normalizeTruckImportRows(rows);
+    if (!imported.length) {
+      toast('No encontré camiones válidos en el archivo', 'error');
+      return;
+    }
+
+    const before = new Set(truckBase.map(item => item.truck));
+    const byTruck = new Map(truckBase.map(item => [item.truck, item]));
+    imported.forEach(item => {
+      byTruck.set(item.truck, {
+        id: item.truck,
+        truck: item.truck,
+        capacity: item.capacity,
+        updatedAt: Date.now(),
+      });
+    });
+
+    truckBase = Array.from(byTruck.values());
+    saveTruckBase();
+    renderTruckBaseList();
+    if (state.materialTrucks.length) await refreshLocalTruckData();
+
+    const created = imported.filter(item => !before.has(item.truck)).length;
+    const updated = imported.length - created;
+    toast('Importados ' + imported.length + ' camiones' + (updated ? ' · ' + updated + ' actualizados' : ''), 'success');
+  } catch (err) {
+    console.error('Truck import failed:', err);
+    toast('No pude leer el archivo. Revisa que tenga camión y capacidad.', 'error');
+  }
+}
+
+async function readTruckImportRows(file) {
+  const bytes = await file.arrayBuffer();
+  const workbook = XLSX.read(bytes, { type: 'array' });
+  const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) return [];
+  const sheet = workbook.Sheets[firstSheetName];
+  return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+}
+
+function normalizeHeader(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function findTruckImportColumns(headerRow) {
+  const headers = headerRow.map(normalizeHeader);
+  const truckNames = new Set(['camion', 'ncamion', 'numerocamion', 'nrocamion', 'numcamion', 'truck']);
+  const capacityNames = new Set(['capacidad', 'capacidadpallets', 'pallets', 'pallet', 'cantidadpallets', 'cantpallets']);
+  const truckIndex = headers.findIndex(header => truckNames.has(header) || (header.includes('camion') && !header.includes('capacidad')));
+  const capacityIndex = headers.findIndex(header => capacityNames.has(header) || header.includes('capacidad') || header.includes('pallet'));
+  return { truckIndex, capacityIndex };
+}
+
+function normalizeTruckImportRows(rows) {
+  const cleanRows = rows.filter(row => Array.isArray(row) && row.some(cell => String(cell || '').trim()));
+  if (!cleanRows.length) return [];
+
+  let startIndex = 0;
+  let { truckIndex, capacityIndex } = findTruckImportColumns(cleanRows[0]);
+  if (truckIndex >= 0 && capacityIndex >= 0) {
+    startIndex = 1;
+  } else {
+    truckIndex = 0;
+    capacityIndex = 1;
+  }
+
+  const byTruck = new Map();
+  cleanRows.slice(startIndex).forEach(row => {
+    const truck = normalizeTruck(row[truckIndex]);
+    const capacity = Number(String(row[capacityIndex] || '').replace(',', '.').replace(/[^\d.]/g, ''));
+    if (!truck || !Number.isFinite(capacity) || capacity < 0) return;
+    byTruck.set(truck, { truck, capacity });
+  });
+  return Array.from(byTruck.values());
 }
 
 async function loadHistoryPdf(item) {
@@ -3742,7 +4116,12 @@ function updateApplyButton() {
   const hasPlasticTargets = hasPlasticTotals();
   const hasAnyMarker = state.stampEnabled || state.timeEnabled || hasMaterialTargets || hasPlasticTargets;
   const canApply = hasPdf && (state.isHistoryView || (hasAnyMarker && (!state.stampEnabled || hasStamp)));
+  const canBatchCopies = canApply && !state.isHistoryView && hasMaterialTargets;
   document.querySelector('.action-bar')?.classList.toggle('ready-to-print', Boolean(state.readyToPrint && canApply));
+  if (btnBatchCopies) {
+    btnBatchCopies.classList.toggle('visible', Boolean(canBatchCopies));
+    btnBatchCopies.disabled = !canBatchCopies;
+  }
   btnApply.disabled = !canApply;
   if (!hasPdf) {
     btnApply.textContent = '✦ Aplicar timbre';

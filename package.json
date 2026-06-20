@@ -1,8 +1,38 @@
 {
+  "name": "selloguia",
+  "version": "0.1.0",
+  "description": "SelloGuia offline para sellar guias de despacho localmente.",
+  "author": "SelloGuia",
+  "private": true,
   "scripts": {
-    "dev": "node dev-server.mjs"
+    "dev": "node dev-server.mjs",
+    "desktop": "electron .",
+    "dist:win-folder": "electron-builder --win dir --x64 --publish never -c.win.signAndEditExecutable=false",
+    "dist:win": "electron-builder --win nsis",
+    "dist:mac": "electron-builder --mac dmg"
   },
-  "dependencies": {
-    "pg": "^8.21.0"
+  "main": "electron/main.js",
+  "build": {
+    "appId": "cl.selloguia.desktop",
+    "productName": "SelloGuia",
+    "files": [
+      "index.html",
+      "vendor/**/*",
+      "electron/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "asar": true,
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
   }
 }
